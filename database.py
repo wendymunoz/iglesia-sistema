@@ -10,13 +10,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 _url = os.getenv("DATABASE_URL", "")
-# psycopg2 en producción (Linux); normalizar URL de Railway/Render
+print(f"[DB] DATABASE_URL prefix: {_url[:30] if _url else '(VACÍO)'}")
+
+# Render/Railway usan postgres:// — SQLAlchemy necesita postgresql://
 if _url.startswith("postgres://"):
     _url = _url.replace("postgres://", "postgresql://", 1)
-# SQLAlchemy necesita el dialecto explícito
-if _url.startswith("postgresql://") and "+psycopg2" not in _url and "+pg8000" not in _url:
+# Agregar dialecto psycopg2 explícito
+if _url.startswith("postgresql://") and "+" not in _url.split("//")[0]:
     _url = _url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
+if not _url:
+    raise RuntimeError("DATABASE_URL no está configurada. Agrégala como variable de entorno en Render.")
+
+print(f"[DB] URL final prefix: {_url[:35]}")
 engine = create_engine(_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
