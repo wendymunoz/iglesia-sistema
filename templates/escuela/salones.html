@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Escuela de Liderazgo{% endblock %}
+{% block content %}
+<div style="padding:32px">
+
+  <div class="page-header">
+    <div>
+      <div class="page-breadcrumb">Escuela</div>
+      <h1 class="page-title">Salones</h1>
+    </div>
+    {% if "admin" in session_user.roles %}
+    <button onclick="document.getElementById('form-salon').style.display = document.getElementById('form-salon').style.display === 'none' ? 'block' : 'none'"
+      class="btn-gold">+ Nuevo Salón</button>
+    {% endif %}
+  </div>
+
+  <!-- Create salon form (hidden by default) -->
+  {% if "admin" in session_user.roles %}
+  <div id="form-salon" style="display:none;margin-bottom:20px">
+    <div class="card" style="padding:24px">
+      <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">Crear Nuevo Salón</h3>
+      <form method="post" action="/escuela/salones">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:end">
+          <div style="grid-column:1/-1">
+            <label class="field-label">Nombre del Salón <span style="color:#DC2626">*</span></label>
+            <input type="text" name="nombre" required class="input-field" placeholder="Ej: Nivel 1 — Tarde 2024"/>
+          </div>
+          <div>
+            <label class="field-label">Nivel (1–6)</label>
+            <select name="nivel" class="input-field">
+              {% for n in range(1,7) %}
+              <option value="{{ n }}">Nivel {{ n }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Turno</label>
+            <select name="turno" class="input-field">
+              <option value="mañana">Mañana</option>
+              <option value="tarde">Tarde</option>
+              <option value="noche">Noche</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Año</label>
+            <input type="number" name="anio" value="2024" min="2020" max="2040" class="input-field"/>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button type="submit" class="btn-gold">Crear Salón</button>
+          <button type="button" onclick="document.getElementById('form-salon').style.display='none'" class="btn-outline">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Salon grid -->
+  {% if salones %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+    {% for s in salones %}
+    <a href="/escuela/salon/{{ s.id }}" style="text-decoration:none">
+      <div class="card" style="padding:20px;transition:all 0.15s;cursor:pointer" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(201,162,39,0.15)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+          <div style="width:40px;height:40px;background:linear-gradient(135deg,#C9A227,#8B6914);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px">
+            N{{ s.nivel or '?' }}
+          </div>
+          <span class="badge badge-gold">{{ s.anio or '' }}</span>
+        </div>
+        <div style="font-size:15px;font-weight:700;color:#1A160E;margin-bottom:4px">{{ s.nombre }}</div>
+        <div style="font-size:12px;color:#8B7A5A;margin-bottom:12px">{{ s.turno or '' }} · {{ s.matriculas|length }} estudiante(s)</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid #F0EBE0">
+          {% set activas = s.matriculas|selectattr("estado","equalto","activa")|list %}
+          <div style="font-size:12px;color:#8B7A5A">{{ activas|length }} activos</div>
+          <div style="font-size:12px;color:#C9A227;font-weight:600">Ver detalles →</div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card" style="padding:60px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">🎓</div>
+    <div style="font-size:16px;font-weight:600;color:#8B7A5A">No hay salones aún</div>
+    <div style="font-size:13px;color:#B8A888;margin-top:4px">Crea el primer salón con el botón de arriba</div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

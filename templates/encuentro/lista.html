@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Grupos de Encuentro{% endblock %}
+{% block content %}
+<div style="padding:32px">
+
+  <div class="page-header">
+    <div>
+      <div class="page-breadcrumb">Liderazgo</div>
+      <h1 class="page-title">Grupos de Encuentro</h1>
+    </div>
+    <button onclick="document.getElementById('form-nuevo').style.display=document.getElementById('form-nuevo').style.display==='none'?'block':'none'" class="btn-gold">
+      + Nuevo Grupo
+    </button>
+  </div>
+
+  <!-- Form nuevo grupo -->
+  <div id="form-nuevo" style="display:none;margin-bottom:20px">
+    <div class="card" style="padding:24px">
+      <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">Crear Nuevo Grupo de Encuentro</h3>
+      <form method="post" action="/encuentro/nuevo">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="grid-column:1/-1">
+            <label class="field-label">Nombre del Grupo</label>
+            <input type="text" name="nombre" class="input-field" placeholder="Ej: Encuentro Julio 2025" required/>
+          </div>
+          <div>
+            <label class="field-label">Fecha Apertura (inscripciones)</label>
+            <input type="date" name="fecha_apertura" class="input-field"/>
+          </div>
+          <div>
+            <label class="field-label">Fecha del Encuentro</label>
+            <input type="date" name="fecha_encuentro" class="input-field"/>
+          </div>
+          <div>
+            <label class="field-label">Notas</label>
+            <input type="text" name="notas" class="input-field" placeholder="Opcional"/>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button type="submit" class="btn-gold">Crear Grupo</button>
+          <button type="button" onclick="document.getElementById('form-nuevo').style.display='none'" class="btn-outline">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Stats globales -->
+  {% if grupos %}
+  {% set total_ins = grupos|sum(attribute='inscripciones')|list|length %}
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:26px;font-weight:800;color:#1A160E">{{ grupos|length }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-top:2px">Grupos</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center">
+      {% set activos = grupos|selectattr("estado","equalto","activo")|list %}
+      <div style="font-size:26px;font-weight:800;color:#C9A227">{{ activos|length }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-top:2px">Activos</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center">
+      {% set completados = grupos|selectattr("estado","equalto","completado")|list %}
+      <div style="font-size:26px;font-weight:800;color:#16A34A">{{ completados|length }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-top:2px">Completados</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Grupos grid -->
+  {% if grupos %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+    {% for g in grupos %}
+    {% set inscriptos = g.inscripciones|length %}
+    {% set completados_g = g.inscripciones|selectattr("estado","equalto","completado")|list|length %}
+    <div class="card" style="padding:20px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div style="width:40px;height:40px;background:linear-gradient(135deg,#C9A227,#8B6914);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">🕊️</div>
+        <span class="badge {% if g.estado == 'completado' %}badge-green{% elif g.estado == 'cerrado' %}badge-gray{% elif g.estado == 'en_proceso' %}badge-blue{% else %}badge-gold{% endif %}">
+          {{ g.estado.replace("_"," ").title() }}
+        </span>
+      </div>
+      <div style="font-size:16px;font-weight:700;color:#1A160E;margin-bottom:4px">{{ g.nombre }}</div>
+      {% if g.fecha_encuentro %}
+      <div style="font-size:12px;color:#8B7A5A;margin-bottom:4px">📅 Encuentro: {{ g.fecha_encuentro.strftime("%d/%m/%Y") }}</div>
+      {% endif %}
+      {% if g.encargado %}
+      <div style="font-size:12px;color:#8B7A5A;margin-bottom:10px">👤 {{ g.encargado.nombre_completo }}</div>
+      {% endif %}
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <span class="badge badge-gray">{{ inscriptos }} inscriptos</span>
+        {% if completados_g > 0 %}
+        <span class="badge badge-green">{{ completados_g }} completaron</span>
+        {% endif %}
+      </div>
+      <a href="/encuentro/{{ g.id }}"
+        style="display:block;text-align:center;background:linear-gradient(135deg,#D4A820,#A07818);color:#fff;font-weight:700;border-radius:10px;padding:10px;text-decoration:none;font-size:13px"
+        onmouseover="this.style.boxShadow='0 4px 12px rgba(201,162,39,0.4)'" onmouseout="this.style.boxShadow=''">
+        Ver Grupo →
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card" style="padding:60px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">🕊️</div>
+    <div style="font-size:16px;font-weight:600;color:#8B7A5A">No hay grupos de encuentro aún</div>
+    <div style="font-size:13px;color:#B8A888;margin-top:4px">Crea el primer grupo con el botón de arriba</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

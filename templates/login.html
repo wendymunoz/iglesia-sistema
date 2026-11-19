@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Acceder — Sistema Iglesia</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin:0; font-family: system-ui, sans-serif; min-height:100vh;
+      background: linear-gradient(135deg, #1A160E 0%, #2F2210 50%, #1A160E 100%);
+      display: flex; align-items: center; justify-content: center; }
+    .login-card { background:#fff; border-radius:20px; padding:40px; width:360px; box-shadow:0 20px 60px rgba(0,0,0,0.4); }
+    .logo-circle { width:64px; height:64px; background:linear-gradient(135deg,#C9A227,#8B6914); border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 16px; }
+    h1 { text-align:center; font-size:22px; font-weight:800; color:#1A160E; margin:0 0 4px; }
+    .subtitle { text-align:center; font-size:12px; color:#8B7A5A; margin-bottom:28px; }
+    .field-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#8B7A5A; display:block; margin-bottom:5px; }
+    .input-field { width:100%; border:1.5px solid #E5E0D5; border-radius:10px; padding:11px 14px; font-size:14px; color:#1A160E; background:#FAFAF8; outline:none; box-sizing:border-box; transition:all 0.15s; }
+    .input-field:focus { border-color:#C9A227; box-shadow:0 0 0 3px rgba(201,162,39,0.12); background:#fff; }
+    .input-field::placeholder { color:#C0B89A; }
+    .btn-login { width:100%; background:linear-gradient(135deg,#D4A820,#A07818); color:#fff; font-weight:700; border:none; border-radius:12px; padding:13px; font-size:15px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(201,162,39,0.35); margin-top:20px; }
+    .btn-login:hover { box-shadow:0 6px 20px rgba(201,162,39,0.5); transform:translateY(-1px); }
+    .field-group { margin-bottom:16px; }
+    .error-box { background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:10px 14px; color:#991B1B; font-size:13px; text-align:center; margin-bottom:16px; }
+    .hint { text-align:center; font-size:11px; color:#B8A888; margin-top:20px; }
+    .decorative { position:fixed; pointer-events:none; }
+  </style>
+</head>
+<body>
+  <!-- Decorative elements -->
+  <div class="decorative" style="top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(201,162,39,0.12),transparent 70%);border-radius:50%"></div>
+  <div class="decorative" style="bottom:-100px;left:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(201,162,39,0.08),transparent 70%);border-radius:50%"></div>
+
+  <div class="login-card">
+    <div class="logo-circle">✝️</div>
+    <h1>Bienvenido</h1>
+    <p class="subtitle">Sistema de Gestión Iglesia</p>
+
+    {% if error %}
+    <div class="error-box">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/login">
+      <div class="field-group">
+        <label class="field-label">DNI</label>
+        <input class="input-field" type="text" name="dni" placeholder="Ingresa tu DNI" maxlength="12" autocomplete="off" required/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">PIN</label>
+        <input class="input-field" type="password" name="pin" placeholder="Tu PIN de 4+ dígitos" maxlength="8" autocomplete="off" required/>
+      </div>
+      <button type="submit" class="btn-login">Ingresar →</button>
+    </form>
+
+    <p class="hint">¿No tienes acceso? Contacta al administrador</p>
+  </div>
+</body>
+</html>

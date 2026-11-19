@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}{{ g.nombre }}{% endblock %}
+{% block content %}
+<div style="padding:32px;max-width:900px">
+
+  <div class="page-breadcrumb" style="margin-bottom:6px">
+    <a href="/encuentro" style="color:#C9A227;text-decoration:none">Encuentro</a>
+    <span style="color:#C0B090">›</span>
+    {{ g.nombre }}
+  </div>
+
+  {% if request.query_params.get("ok") %}
+  <div class="alert-gold" style="margin-bottom:16px"><span>✅</span><span style="font-size:13px;color:#7A5F0A">{{ request.query_params.get("ok") }}</span></div>
+  {% endif %}
+  {% if request.query_params.get("error") %}
+  <div class="alert-red" style="margin-bottom:16px">⚠️ {{ request.query_params.get("error") }}</div>
+  {% endif %}
+
+  <!-- Header -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 class="page-title">🕊️ {{ g.nombre }}</h1>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+        <span class="badge {% if g.estado == 'completado' %}badge-green{% elif g.estado == 'cerrado' %}badge-gray{% elif g.estado == 'en_proceso' %}badge-blue{% else %}badge-gold{% endif %}">
+          {{ g.estado.replace("_"," ").title() }}
+        </span>
+        {% if g.fecha_encuentro %}
+        <span style="font-size:12px;color:#8B7A5A">📅 Encuentro: <strong>{{ g.fecha_encuentro.strftime("%d/%m/%Y") }}</strong></span>
+        {% endif %}
+        {% if g.encargado %}
+        <span style="font-size:12px;color:#8B7A5A">👤 {{ g.encargado.nombre_completo }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <!-- Cambiar estado del grupo -->
+    <form method="post" action="/encuentro/{{ g.id }}/estado" style="display:flex;gap:8px;align-items:center">
+      <select name="estado" class="input-field" style="font-size:12px;padding:8px 12px;width:auto">
+        {% for est in ["activo","en_proceso","completado","cerrado"] %}
+        <option value="{{ est }}" {% if g.estado == est %}selected{% endif %}>{{ est.replace("_"," ").title() }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-outline" style="font-size:12px;padding:8px 14px;white-space:nowrap">Actualizar</button>
+    </form>
+  </div>
+
+  <!-- Stats -->
+  {% set inscriptos = g.inscripciones|length %}
+  {% set completados_n = g.inscripciones|selectattr("estado","equalto","completado")|list|length %}
+  {% set retirados_n = g.inscripciones|selectattr("estado","equalto","retirado")|list|length %}
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:#1A160E">{{ inscriptos }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8B7A5A;margin-top:2px">Inscriptos</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:#16A34A">{{ completados_n }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8B7A5A;margin-top:2px">Completaron</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:#DC2626">{{ retirados_n }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8B7A5A;margin-top:2px">Retirados</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:#C9A227">S/. {{ "%.0f"|format(total_pagado) }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#8B7A5A;margin-top:2px">Recaudado</div>
+    </div>
+  </div>
+
+  <!-- Inscribir persona -->
+  <div class="card" style="padding:20px;margin-bottom:20px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 14px">Inscribir Persona</h3>
+    <form method="post" action="/encuentro/{{ g.id }}/inscribir" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <label class="field-label">DNI</label>
+        <input type="text" id="enc-dni" name="dni" class="input-field" placeholder="DNI de la persona" maxlength="8" required style="font-family:monospace;font-weight:700;letter-spacing:1px" inputmode="numeric"/>
+        <div id="enc-reniec" style="font-size:12px;margin-top:4px;min-height:14px"></div>
+      </div>
+      <div style="min-width:100px">
+        <label class="field-label">Talla Polo</label>
+        <select name="talla_polo" class="input-field">
+          <option value="">— Sin talla —</option>
+          {% for t in ["XS","S","M","L","XL","XXL"] %}
+          <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-gold">Inscribir →</button>
+    </form>
+  </div>
+
+  <!-- Lista de inscriptos -->
+  <div class="card">
+    <div style="padding:16px 20px;border-bottom:1px solid #F0EBE0;font-size:13px;font-weight:700;color:#1A160E">
+      Personas Inscritas
+    </div>
+    {% if g.inscripciones %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Persona</th>
+          <th>Talla</th>
+          <th>Estado</th>
+          <th>Pagos</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ins in g.inscripciones|sort(attribute='fecha_inscripcion') %}
+        {% set pagado = ins.pagos|sum(attribute='monto') %}
+        <tr>
+          <td>
+            <a href="/personas/{{ ins.persona_id }}" style="font-weight:600;color:#1A160E;text-decoration:none;font-size:13px" onmouseover="this.style.color='#C9A227'" onmouseout="this.style.color='#1A160E'">
+              {{ ins.persona.nombre_completo if ins.persona else "—" }}
+            </a>
+            {% if ins.persona %}
+            <div style="font-size:11px;color:#8B7A5A;font-family:monospace">{{ ins.persona.dni }}</div>
+            {% endif %}
+          </td>
+          <td style="font-size:13px;color:#5A4E38">{{ ins.talla_polo or "—" }}</td>
+          <td>
+            <span class="badge {% if ins.estado == 'completado' %}badge-green{% elif ins.estado == 'retirado' %}badge-red{% else %}badge-gold{% endif %}">
+              {{ ins.estado.title() }}
+            </span>
+          </td>
+          <td>
+            {% if pagado > 0 %}
+            <span style="font-weight:700;color:#C9A227;font-size:13px">S/. {{ "%.0f"|format(pagado) }}</span>
+            {% else %}
+            <span style="color:#B8A888;font-size:13px">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <!-- Registrar pago -->
+              <button onclick="togglePago({{ ins.id }})" style="font-size:11px;padding:4px 10px;background:#F7F5F0;border:1px solid #E5E0D5;border-radius:6px;cursor:pointer;color:#5A4E38;font-weight:600">+ Pago</button>
+              {% if ins.estado == 'inscrito' %}
+              <form method="post" action="/encuentro/inscripciones/{{ ins.id }}/completar" style="display:inline">
+                <button type="submit" style="font-size:11px;padding:4px 10px;background:#DCFCE7;border:1px solid #A7F3D0;border-radius:6px;cursor:pointer;color:#166534;font-weight:600">✓ Completó</button>
+              </form>
+              <form method="post" action="/encuentro/inscripciones/{{ ins.id }}/retirar" style="display:inline">
+                <button type="submit" style="font-size:11px;padding:4px 10px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;cursor:pointer;color:#991B1B;font-weight:600">Retirar</button>
+              </form>
+              {% endif %}
+            </div>
+            <!-- Inline pago form -->
+            <div id="pago-{{ ins.id }}" style="display:none;margin-top:8px;padding:10px;background:#FAFAF8;border-radius:8px;border:1px solid #E5E0D5">
+              <form method="post" action="/encuentro/inscripciones/{{ ins.id }}/pago" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+                <div>
+                  <label class="field-label">Concepto</label>
+                  <input type="text" name="concepto" placeholder="Ej: Inscripción" style="width:130px;border:1px solid #E5E0D5;border-radius:8px;padding:6px 10px;font-size:13px;outline:none"/>
+                </div>
+                <div>
+                  <label class="field-label">Monto S/.</label>
+                  <input type="number" name="monto" step="0.50" min="0.01" required style="width:90px;border:1px solid #E5E0D5;border-radius:8px;padding:6px 10px;font-size:13px;outline:none"/>
+                </div>
+                <div>
+                  <label class="field-label">Método</label>
+                  <select name="metodo" style="border:1px solid #E5E0D5;border-radius:8px;padding:6px 8px;font-size:13px;outline:none">
+                    <option value="efectivo">Efectivo</option>
+                    <option value="yape">Yape</option>
+                    <option value="plin">Plin</option>
+                    <option value="transferencia">Transferencia</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn-gold" style="font-size:12px;padding:8px 14px">Guardar</button>
+                <button type="button" onclick="togglePago({{ ins.id }})" style="font-size:12px;padding:8px 10px;background:transparent;border:none;cursor:pointer;color:#8B7A5A">✕</button>
+              </form>
+            </div>
+            <!-- Historial de pagos -->
+            {% if ins.pagos %}
+            <div style="margin-top:6px">
+              {% for pa in ins.pagos %}
+              <div style="font-size:11px;color:#5A4E38;padding:2px 0">
+                S/. {{ "%.0f"|format(pa.monto) }} — {{ pa.concepto }} ({{ pa.metodo }})
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:#B8A888">
+      <div style="font-size:32px;margin-bottom:8px">🕊️</div>
+      <div style="font-size:14px">Aún no hay personas inscritas</div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+<script>
+function togglePago(id) {
+  const el = document.getElementById('pago-' + id)
+  el.style.display = el.style.display === 'none' ? 'block' : 'none'
+}
+</script>
+{% block extra_js %}
+<script>
+reniecAuto('enc-dni', { preview: 'enc-reniec' })
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Agenda{% endblock %}
+{% block content %}
+<div style="padding:32px;max-width:1000px">
+
+  <!-- Header + nav mes -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 class="page-title">📅 Agenda</h1>
+      <p class="page-subtitle">{{ MESES[mes] }} {{ anio }}</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <a href="/agenda?mes={{ mes_anterior.month }}&anio={{ mes_anterior.year }}"
+         style="padding:8px 14px;border:1.5px solid #E5E0D5;border-radius:8px;background:#fff;text-decoration:none;color:#1A160E;font-weight:700">‹</a>
+      <span style="font-size:14px;font-weight:700;color:#1A160E;min-width:140px;text-align:center">{{ MESES[mes] }} {{ anio }}</span>
+      <a href="/agenda?mes={{ mes_siguiente.month }}&anio={{ mes_siguiente.year }}"
+         style="padding:8px 14px;border:1.5px solid #E5E0D5;border-radius:8px;background:#fff;text-decoration:none;color:#1A160E;font-weight:700">›</a>
+      <button onclick="document.getElementById('form-nuevo').style.display='block'" class="btn-gold" style="margin-left:8px">+ Evento</button>
+    </div>
+  </div>
+
+  <!-- Formulario nuevo evento (hidden) -->
+  <div id="form-nuevo" style="display:none" class="card" style="padding:24px;margin-bottom:24px;border:2px solid #C9A227">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">Nuevo Evento</h3>
+    <form method="post" action="/agenda/nuevo">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div style="grid-column:1/-1">
+          <label class="field-label">Título *</label>
+          <input type="text" name="titulo" class="input-field" required placeholder="Nombre del evento"/>
+        </div>
+        <div>
+          <label class="field-label">Fecha inicio *</label>
+          <input type="date" name="fecha_inicio" class="input-field" required value="{{ primer_dia.isoformat() }}"/>
+        </div>
+        <div>
+          <label class="field-label">Fecha fin</label>
+          <input type="date" name="fecha_fin" class="input-field"/>
+        </div>
+        <div>
+          <label class="field-label">Hora inicio</label>
+          <input type="time" name="hora_inicio" class="input-field"/>
+        </div>
+        <div>
+          <label class="field-label">Hora fin</label>
+          <input type="time" name="hora_fin" class="input-field"/>
+        </div>
+        <div>
+          <label class="field-label">Tipo</label>
+          <select name="tipo" class="input-field">
+            <option value="general">General</option>
+            <option value="culto">Culto</option>
+            <option value="reunion">Reunión</option>
+            <option value="retiro">Retiro</option>
+            <option value="conferencia">Conferencia</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Lugar</label>
+          <input type="text" name="lugar" class="input-field" placeholder="Ej: Templo central"/>
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="field-label">Descripción</label>
+          <textarea name="descripcion" class="input-field" rows="2" placeholder="Detalles del evento..."></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn-gold">Guardar Evento</button>
+        <button type="button" onclick="document.getElementById('form-nuevo').style.display='none'" class="btn-outline">Cancelar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Calendario -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <!-- Cabecera días semana -->
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);background:#1A160E">
+      {% for dia in ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"] %}
+      <div style="padding:10px;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.6px">{{ dia }}</div>
+      {% endfor %}
+    </div>
+    <!-- Rejilla días -->
+    {% set total_celdas = primer_semana_dia + dias_mes %}
+    {% set filas = ((total_celdas + 6) // 7) %}
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid #F0EBE0;border-top:1px solid #F0EBE0">
+      {% for i in range(filas * 7) %}
+        {% set dia_num = i - primer_semana_dia + 1 %}
+        {% set es_dia = (dia_num >= 1 and dia_num <= dias_mes) %}
+        {% set es_hoy = es_dia and hoy.day == dia_num and hoy.month == mes and hoy.year == anio %}
+        <div style="min-height:90px;border-right:1px solid #F0EBE0;border-bottom:1px solid #F0EBE0;padding:6px;background:{% if es_hoy %}#FFFBF0{% elif not es_dia %}#FAFAF8{% else %}#fff{% endif %}">
+          {% if es_dia %}
+          <div style="font-size:13px;font-weight:{% if es_hoy %}800{% else %}600{% endif %};color:{% if es_hoy %}#C9A227{% else %}#1A160E{% endif %};margin-bottom:4px">{{ dia_num }}</div>
+          {% for ev in eventos %}
+            {% if ev.fecha_inicio.day == dia_num %}
+            <div style="background:{% if ev.tipo == 'culto' %}#ECFDF5{% elif ev.tipo == 'retiro' %}#EFF6FF{% elif ev.tipo == 'conferencia' %}#FEF9EE{% else %}#F7F5F0{% endif %};border-radius:4px;padding:3px 6px;margin-bottom:3px;font-size:10px;font-weight:600;color:#1A160E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{{ ev.titulo }}">
+              {% if ev.hora_inicio %}{{ ev.hora_inicio }} {% endif %}{{ ev.titulo }}
+            </div>
+            {% endif %}
+          {% endfor %}
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Lista eventos del mes -->
+  {% if eventos %}
+  <div class="card" style="margin-top:20px">
+    <div style="padding:16px 20px;border-bottom:1px solid #F0EBE0;font-size:13px;font-weight:700;color:#1A160E">
+      Eventos del mes
+    </div>
+    {% for ev in eventos %}
+    <div style="padding:14px 20px;border-bottom:1px solid #F0EBE0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="text-align:center;min-width:36px">
+          <div style="font-size:18px;font-weight:800;color:#1A160E;line-height:1">{{ ev.fecha_inicio.day }}</div>
+          <div style="font-size:10px;color:#8B7A5A;text-transform:uppercase">{{ MESES[ev.fecha_inicio.month - 1][:3] }}</div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#1A160E">{{ ev.titulo }}</div>
+          <div style="font-size:12px;color:#8B7A5A;margin-top:2px">
+            {% if ev.hora_inicio %}{{ ev.hora_inicio }}{% if ev.hora_fin %} – {{ ev.hora_fin }}{% endif %} · {% endif %}
+            <span class="badge" style="font-size:10px;padding:2px 8px">{{ ev.tipo }}</span>
+            {% if ev.lugar %} · 📍 {{ ev.lugar }}{% endif %}
+          </div>
+          {% if ev.descripcion %}<div style="font-size:12px;color:#5A4E38;margin-top:4px">{{ ev.descripcion }}</div>{% endif %}
+        </div>
+      </div>
+      <form method="post" action="/agenda/{{ ev.id }}/eliminar" onsubmit="return confirm('¿Eliminar este evento?')">
+        <button type="submit" style="font-size:11px;padding:4px 10px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;cursor:pointer;color:#991B1B;font-weight:600;white-space:nowrap">Eliminar</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

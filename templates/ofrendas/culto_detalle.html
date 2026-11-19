@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ culto.tipo|title }} {{ culto.fecha.strftime("%d/%m/%Y") }}{% endblock %}
+{% block content %}
+<div style="padding:32px;max-width:700px">
+
+  <div class="page-breadcrumb" style="margin-bottom:6px">
+    <a href="/ofrendas" style="color:#C9A227;text-decoration:none">Ofrendas</a>
+    <span style="color:#C0B090">›</span>
+    {{ culto.tipo.title() }} {{ culto.fecha.strftime("%d/%m/%Y") }}
+  </div>
+  <h1 class="page-title" style="margin-bottom:28px;text-transform:capitalize">
+    {{ culto.tipo }} — {{ culto.fecha.strftime("%d de %B %Y") }}
+  </h1>
+
+  <!-- Total card -->
+  <div style="background:linear-gradient(135deg,#1A160E,#2F2210);border-radius:18px;padding:28px;text-align:center;margin-bottom:24px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(201,162,39,0.1);border-radius:50%"></div>
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.5);margin-bottom:8px">Total Recaudado</div>
+    <div style="font-size:48px;font-weight:800;color:#C9A227">
+      S/. {{ "%.2f"|format(culto.ofrendas|sum(attribute='monto')) }}
+    </div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-top:6px">{{ culto.ofrendas|length }} entrada(s)</div>
+  </div>
+
+  <!-- Register entry -->
+  <div class="card" style="padding:24px;margin-bottom:20px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">Registrar Entrada</h3>
+    <form method="post" action="/ofrendas/{{ culto.id }}/registrar">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div>
+          <label class="field-label">Concepto</label>
+          <select name="concepto" class="input-field">
+            <option value="ofrenda">Ofrenda</option>
+            <option value="diezmo">Diezmo</option>
+            <option value="siembra_mision">Siembra / Misión</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Monto (S/.) <span style="color:#DC2626">*</span></label>
+          <input type="number" name="monto" step="0.50" min="0" required class="input-field" placeholder="0.00"/>
+        </div>
+      </div>
+      <button type="submit" class="btn-gold" style="width:100%">+ Registrar Entrada</button>
+    </form>
+  </div>
+
+  <!-- Detail -->
+  {% if culto.ofrendas %}
+  <div class="card" style="padding:24px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">Detalle de Entradas</h3>
+
+    {% for o in culto.ofrendas|sort(attribute='hora') %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #F0EBE0">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#1A160E;text-transform:capitalize">{{ o.concepto.replace("_"," ") }}</div>
+        <div style="font-size:11px;color:#8B7A5A">
+          {{ o.hora.strftime("%H:%M") if o.hora else "" }}
+          {% if o.registrado_por %} · {{ o.registrado_por.nombre_completo }}{% endif %}
+        </div>
+      </div>
+      <span style="font-size:15px;font-weight:800;color:#C9A227">S/. {{ "%.2f"|format(o.monto) }}</span>
+    </div>
+    {% endfor %}
+
+    <!-- Subtotals -->
+    <div style="margin-top:16px;padding:16px;background:#FFFBF0;border-radius:10px;border:1px solid #E8D5A0">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-bottom:10px">Resumen por Concepto</div>
+      {% for concepto in ["ofrenda","diezmo","siembra_mision"] %}
+      {% set total = culto.ofrendas|selectattr("concepto","equalto",concepto)|sum(attribute="monto") %}
+      {% if total > 0 %}
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F0EBE0">
+        <span style="font-size:13px;color:#5A4E38;text-transform:capitalize">{{ concepto.replace("_"," ") }}</span>
+        <span style="font-size:13px;font-weight:700;color:#7A5F0A">S/. {{ "%.2f"|format(total) }}</span>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="card" style="padding:60px;text-align:center;color:#B8A888">
+    <div style="font-size:40px;margin-bottom:12px">💰</div>
+    <div>Aún no hay entradas. Usa el formulario para registrar.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

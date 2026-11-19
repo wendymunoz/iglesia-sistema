@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Red G12{% endblock %}
+{% block content %}
+<div style="padding:24px 32px;max-width:1200px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+    <div>
+      <h1 class="page-title">🌳 Red G12</h1>
+      <p class="page-subtitle">Árbol de liderazgo y grupos</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="zoomIn()" style="padding:8px 14px;border:1.5px solid #E5E0D5;border-radius:8px;background:#fff;cursor:pointer;font-size:16px">＋</button>
+      <button onclick="zoomOut()" style="padding:8px 14px;border:1.5px solid #E5E0D5;border-radius:8px;background:#fff;cursor:pointer;font-size:16px">－</button>
+      <button onclick="resetZoom()" style="padding:8px 14px;border:1.5px solid #E5E0D5;border-radius:8px;background:#fff;cursor:pointer;font-size:12px;font-weight:600">Reset</button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;position:relative">
+    <canvas id="tree-canvas" style="width:100%;display:block;cursor:grab"></canvas>
+    <div id="tooltip" style="position:absolute;display:none;background:#1A160E;color:#fff;padding:10px 14px;border-radius:10px;font-size:12px;pointer-events:none;z-index:10;min-width:140px;box-shadow:0 4px 20px rgba(0,0,0,0.3)"></div>
+  </div>
+
+  <div style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#8B7A5A">
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:50%;background:#C9A227;display:inline-block"></span>G1 – Pastor/Red</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:50%;background:#4F7942;display:inline-block"></span>G2 – Supervisor</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:50%;background:#1D4ED8;display:inline-block"></span>G3 – Líder</span>
+    <span style="display:flex;align-items:center;gap=6px"><span style="width:12px;height:12px;border-radius:50%;background:#7C3AED;display:inline-block"></span>G4+</span>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('tree-canvas')
+const ctx2d = canvas.getContext('2d')
+const tooltip = document.getElementById('tooltip')
+let tree = []
+let scale = 1, offsetX = 60, offsetY = 60
+let nodes = []
+
+const GEN_COLORS = { 1: '#C9A227', 2: '#4F7942', 3: '#1D4ED8', 4: '#7C3AED' }
+
+async function loadTree() {
+  const res = await fetch('/api/g12/arbol')
+  tree = await res.json()
+  layoutTree()
+  draw()
+}
+
+function layoutTree() {
+  nodes = []
+  const W = 180, H = 90
+  function walk(node, x, y, level) {
+    node._x = x; node._y = y; node._w = W; node._h = H
+    nodes.push(node)
+    const n = node.children.length
+    if (!n) return W
+    let totalW = 0
+    node.children.forEach((c, i) => {
+      totalW += walk(c, 0, 0, level + 1) + 20
+    })
+    totalW -= 20
+    let cx = x - totalW / 2
+    node.children.forEach((c, i) => {
+      const cw = walk(c, 0, 0, level + 1)
+      c._x = cx + cw / 2
+      c._y = y + H + 60
+      cx += cw + 20
+    })
+    return Math.max(totalW, W)
+  }
+  let cx = 0
+  tree.forEach((root, i) => {
+    const w = walk(root, cx + W / 2, 60, 1)
+    cx += w + 40
+  })
+}
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1
+  const rect = canvas.parentElement.getBoundingClientRect()
+  canvas.width = rect.width * dpr
+  canvas.height = 500 * dpr
+  canvas.style.height = '500px'
+  ctx2d.scale(dpr, dpr)
+  ctx2d.clearRect(0, 0, rect.width, 500)
+  ctx2d.save()
+  ctx2d.translate(offsetX, offsetY)
+  ctx2d.scale(scale, scale)
+  drawEdges(tree)
+  nodes.forEach(drawNode)
+  ctx2d.restore()
+}
+
+function drawEdges(list) {
+  list.forEach(node => {
+    node.children.forEach(child => {
+      ctx2d.beginPath()
+      ctx2d.moveTo(node._x + node._w / 2, node._y + node._h)
+      ctx2d.bezierCurveTo(
+        node._x + node._w / 2, node._y + node._h + 30,
+        child._x + child._w / 2, child._y - 30,
+        child._x + child._w / 2, child._y
+      )
+      ctx2d.strokeStyle = '#E5E0D5'
+      ctx2d.lineWidth = 2
+      ctx2d.stroke()
+      drawEdges(child.children.length ? [child] : [])
+    })
+  })
+}
+
+function drawNode(node) {
+  const x = node._x, y = node._y, w = node._w, h = node._h
+  const gen = node.generacion || 1
+  const color = GEN_COLORS[Math.min(gen, 4)] || '#8B7A5A'
+
+  ctx2d.save()
+  ctx2d.shadowColor = 'rgba(0,0,0,0.12)'
+  ctx2d.shadowBlur = 10
+  ctx2d.fillStyle = '#fff'
+  roundRect(x, y, w, h, 12)
+  ctx2d.fill()
+  ctx2d.restore()
+
+  ctx2d.fillStyle = color
+  roundRect(x, y, w, 5, { tl: 12, tr: 12, bl: 0, br: 0 })
+  ctx2d.fill()
+
+  ctx2d.fillStyle = '#1A160E'
+  ctx2d.font = 'bold 12px system-ui'
+  ctx2d.textAlign = 'center'
+  const maxLen = 22
+  const nm = node.nombre.length > maxLen ? node.nombre.substring(0, maxLen) + '…' : node.nombre
+  ctx2d.fillText(nm, x + w / 2, y + 28)
+
+  ctx2d.fillStyle = '#8B7A5A'
+  ctx2d.font = '10px system-ui'
+  ctx2d.fillText(`G${gen}`, x + w / 2, y + 46)
+
+  if (node.celulas > 0) {
+    ctx2d.fillStyle = '#C9A227'
+    ctx2d.font = '10px system-ui'
+    ctx2d.fillText(`${node.celulas} célula${node.celulas > 1 ? 's' : ''}`, x + w / 2, y + 62)
+  }
+
+  if (node.children.length) {
+    ctx2d.fillStyle = '#8B7A5A'
+    ctx2d.font = '10px system-ui'
+    ctx2d.fillText(`▶ ${node.children.length} discípulos`, x + w / 2, y + 78)
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  if (typeof r === 'number') r = { tl: r, tr: r, bl: r, br: r }
+  ctx2d.beginPath()
+  ctx2d.moveTo(x + r.tl, y)
+  ctx2d.lineTo(x + w - r.tr, y)
+  ctx2d.quadraticCurveTo(x + w, y, x + w, y + r.tr)
+  ctx2d.lineTo(x + w, y + h - r.br)
+  ctx2d.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h)
+  ctx2d.lineTo(x + r.bl, y + h)
+  ctx2d.quadraticCurveTo(x, y + h, x, y + h - r.bl)
+  ctx2d.lineTo(x, y + r.tl)
+  ctx2d.quadraticCurveTo(x, y, x + r.tl, y)
+  ctx2d.closePath()
+}
+
+function zoomIn() { scale = Math.min(scale + 0.15, 2.5); draw() }
+function zoomOut() { scale = Math.max(scale - 0.15, 0.3); draw() }
+function resetZoom() { scale = 1; offsetX = 60; offsetY = 60; draw() }
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault()
+  const delta = e.deltaY > 0 ? -0.1 : 0.1
+  scale = Math.max(0.3, Math.min(2.5, scale + delta))
+  draw()
+}, { passive: false })
+
+let drag = false, lastX, lastY
+canvas.addEventListener('mousedown', e => { drag = true; lastX = e.clientX; lastY = e.clientY; canvas.style.cursor = 'grabbing' })
+canvas.addEventListener('mousemove', e => {
+  if (drag) {
+    offsetX += e.clientX - lastX; offsetY += e.clientY - lastY
+    lastX = e.clientX; lastY = e.clientY; draw()
+  }
+})
+canvas.addEventListener('mouseup', () => { drag = false; canvas.style.cursor = 'grab' })
+canvas.addEventListener('mouseleave', () => { drag = false })
+
+loadTree()
+window.addEventListener('resize', () => { layoutTree(); draw() })
+</script>
+{% endblock %}

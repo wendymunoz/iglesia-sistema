@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Nueva Persona{% endblock %}
+{% block content %}
+<div style="padding:32px;max-width:680px">
+
+  <div class="page-breadcrumb">
+    <a href="/personas" style="color:#C9A227;text-decoration:none">Personas</a>
+    <span style="color:#C0B090">›</span>
+    Nueva Persona
+  </div>
+  <h1 class="page-title" style="margin-bottom:28px">Nueva Persona</h1>
+
+  {% if error %}
+  <div class="alert-red" style="margin-bottom:20px">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="/personas/nueva">
+
+    <!-- Personal data -->
+    <div class="card" style="padding:24px;margin-bottom:16px">
+      <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 20px">Datos Personales</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="grid-column:1/-1">
+          <label class="field-label">DNI <span style="color:#DC2626">*</span></label>
+          <input type="text" id="f-dni" name="dni" maxlength="8" required class="input-field" placeholder="Número de documento" inputmode="numeric" style="font-family:monospace;font-size:16px;font-weight:700;letter-spacing:2px"/>
+          <div id="reniec-preview" style="font-size:12px;margin-top:5px;min-height:16px"></div>
+        </div>
+        <div>
+          <label class="field-label">Nombre(s) <span style="color:#DC2626">*</span></label>
+          <input type="text" id="f-nombre" name="nombre" required class="input-field" placeholder="Nombre(s)"/>
+        </div>
+        <div>
+          <label class="field-label">Apellido(s) <span style="color:#DC2626">*</span></label>
+          <input type="text" id="f-apellido" name="apellido" required class="input-field" placeholder="Apellido(s)"/>
+        </div>
+        <div>
+          <label class="field-label">Teléfono</label>
+          <input type="text" name="telefono" class="input-field" placeholder="987 654 321"/>
+        </div>
+        <div>
+          <label class="field-label">Email</label>
+          <input type="email" name="email" class="input-field" placeholder="correo@ejemplo.com"/>
+        </div>
+        <div>
+          <label class="field-label">Talla Polo</label>
+          <select name="talla_polo" class="input-field">
+            <option value="">— Sin talla —</option>
+            <option value="XS">XS</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="XXL">XXL</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Etapa Espiritual</label>
+          <select name="etapa" class="input-field">
+            <option value="visitante">Visitante</option>
+            <option value="pre_encuentro">Pre-Encuentro</option>
+            <option value="encuentro">Encuentro con Dios</option>
+            <option value="pos_encuentro">Pos-Encuentro</option>
+            <option value="escuela">Escuela de Liderazgo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Roles -->
+    <div class="card" style="padding:24px;margin-bottom:16px">
+      <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 20px">Roles en el Sistema</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        {% for k, v in ROLES.items() %}
+        <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid #E5E0D5;border-radius:10px;cursor:pointer;transition:all 0.15s">
+          <input type="checkbox" name="roles" value="{{ k }}" style="accent-color:#C9A227;width:16px;height:16px"/>
+          <span style="font-size:13px;font-weight:500;color:#3A3020">{{ v }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- User account -->
+    <div class="card" style="padding:24px;margin-bottom:24px">
+      <label style="display:flex;align-items:flex-start;gap:14px;cursor:pointer">
+        <input type="checkbox" name="crear_usuario" value="si" checked style="accent-color:#C9A227;width:18px;height:18px;margin-top:1px"/>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#1A160E">Crear cuenta de acceso</div>
+          <div style="font-size:12px;color:#8B7A5A;margin-top:2px">El PIN inicial serán los primeros 4 dígitos del DNI. Deberá cambiarlo en su primer ingreso.</div>
+        </div>
+      </label>
+    </div>
+
+    <div style="display:flex;gap:12px">
+      <button type="submit" class="btn-gold">Guardar Persona</button>
+      <a href="/personas" class="btn-outline" style="text-decoration:none;display:inline-flex;align-items:center">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+reniecAuto('f-dni', {
+  nombre: 'f-nombre',
+  apellido: 'f-apellido',
+  preview: 'reniec-preview',
+})
+</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Pendientes de Matrícula{% endblock %}
+{% block content %}
+<div style="padding:28px 32px;max-width:900px">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 class="page-title">🎓 Pendientes de Matrícula</h1>
+      <p class="page-subtitle">Personas que completaron el Encuentro y esperan ser matriculadas en la Escuela de Líderes</p>
+    </div>
+    <a href="/escuela" class="btn-outline" style="text-decoration:none;font-size:13px">← Escuela</a>
+  </div>
+
+  {% if request.query_params.get("ok") %}
+  <div class="alert-gold" style="margin-bottom:16px"><span>✅</span><span style="font-size:13px;color:#7A5F0A">{{ request.query_params.get("ok") }}</span></div>
+  {% endif %}
+  {% if request.query_params.get("error") %}
+  <div class="alert-red" style="margin-bottom:16px">⚠️ {{ request.query_params.get("error") }}</div>
+  {% endif %}
+
+  {% if pendientes %}
+  <div class="card">
+    <div style="padding:14px 20px;border-bottom:1px solid #F0EBE0;display:flex;align-items:center;gap:10px">
+      <span style="font-size:14px;font-weight:700;color:#1A160E">{{ pendientes|length }} persona{{ "s" if pendientes|length != 1 }} en cola</span>
+      <span class="badge badge-gold">Pendientes</span>
+    </div>
+    {% for pm in pendientes %}
+    <div style="padding:16px 20px;border-bottom:1px solid #F0EBE0;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+      <!-- Info persona -->
+      <div style="flex:1;min-width:200px">
+        <a href="/personas/{{ pm.persona_id }}" style="font-size:14px;font-weight:700;color:#1A160E;text-decoration:none">
+          {{ pm.persona.nombre_completo if pm.persona else "—" }}
+        </a>
+        {% if pm.persona %}
+        <div style="font-size:12px;color:#8B7A5A;margin-top:2px;font-family:monospace">{{ pm.persona.dni }}</div>
+        {% endif %}
+        {% if pm.inscripcion and pm.inscripcion.grupo %}
+        <div style="font-size:11px;color:#8B7A5A;margin-top:4px">
+          🕊️ Completó: <strong>{{ pm.inscripcion.grupo.nombre }}</strong>
+          {% if pm.inscripcion.grupo.fecha_encuentro %}· {{ pm.inscripcion.grupo.fecha_encuentro.strftime("%d/%m/%Y") }}{% endif %}
+        </div>
+        {% endif %}
+        <div style="font-size:11px;color:#C9A227;font-weight:600;margin-top:4px">
+          Nivel sugerido: {{ pm.nivel_sugerido }}
+        </div>
+        <div style="font-size:11px;color:#B8A888;margin-top:2px">
+          En cola desde: {{ pm.created_at.strftime("%d/%m/%Y") if pm.created_at else "" }}
+        </div>
+      </div>
+
+      <!-- Formulario de matrícula -->
+      <div style="min-width:280px">
+        <form method="post" action="/escuela/pendientes-matricula/{{ pm.id }}/matricular" style="display:flex;flex-direction:column;gap:8px">
+          <div>
+            <label class="field-label">Salón / Nivel</label>
+            <select name="salon_id" class="input-field" required style="font-size:12px">
+              <option value="">— Seleccionar salón —</option>
+              {% for s in salones %}
+              <option value="{{ s.id }}">{{ s.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Notas (opcional)</label>
+            <input type="text" name="notas" class="input-field" placeholder="Observaciones..." style="font-size:12px"/>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button type="submit" class="btn-gold" style="flex:1;font-size:12px;padding:9px">✓ Matricular</button>
+            <button type="button" onclick="descartar({{ pm.id }}, this)" style="padding:9px 14px;border:1.5px solid #FECACA;border-radius:10px;background:#FEF2F2;color:#991B1B;font-size:12px;font-weight:600;cursor:pointer">Descartar</button>
+          </div>
+        </form>
+        <!-- Form de descartar (hidden, submitted by JS) -->
+        <form id="form-descartar-{{ pm.id }}" method="post" action="/escuela/pendientes-matricula/{{ pm.id }}/descartar" style="display:none">
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card" style="text-align:center;padding:60px">
+    <div style="font-size:48px;margin-bottom:16px">🎓</div>
+    <div style="font-size:16px;font-weight:600;color:#1A160E;margin-bottom:8px">No hay pendientes de matrícula</div>
+    <div style="font-size:14px;color:#8B7A5A">Cuando alguien complete el Encuentro aparecerá aquí para ser matriculado.</div>
+  </div>
+  {% endif %}
+
+</div>
+<script>
+function descartar(id, btn) {
+  if (confirm('¿Descartar esta persona de la cola? No se matriculará en la escuela.')) {
+    document.getElementById('form-descartar-' + id).submit()
+  }
+}
+</script>
+{% endblock %}

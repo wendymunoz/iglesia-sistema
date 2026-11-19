@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Mis Notas{% endblock %}
+{% block content %}
+<div style="padding:32px;max-width:700px">
+
+  <div class="page-breadcrumb" style="margin-bottom:6px">Mi Cuenta</div>
+  <h1 class="page-title" style="margin-bottom:28px">Mis Notas</h1>
+
+  {% if matriculas %}
+  {% for m in matriculas %}
+  <div class="card" style="padding:24px;margin-bottom:20px">
+    <!-- Salon header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #F0EBE0">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1A160E">{{ m.salon.nombre }}</div>
+        <div style="font-size:12px;color:#8B7A5A">Nivel {{ m.salon.nivel }} · {{ m.salon.turno }}</div>
+      </div>
+      <span class="badge {% if m.estado == 'activa' %}badge-green{% elif m.estado == 'graduada' %}badge-gold{% else %}badge-gray{% endif %}">
+        {{ m.estado.title() }}
+      </span>
+    </div>
+
+    <!-- Grades -->
+    {% if m.nota %}
+    {% set n = m.nota %}
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+      {% for campo, label in [("bimestre1","1er Bim"),("bimestre2","2do Bim"),("bimestre3","3er Bim"),("bimestre4","4to Bim"),("examen_parcial","Parcial"),("examen_final","Final"),("promedio_practicas","Prácticas"),("asistencia","Asistencia")] %}
+      <div style="text-align:center;background:#FAFAF8;border-radius:10px;padding:12px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-bottom:4px">{{ label }}</div>
+        <div style="font-size:20px;font-weight:800;color:{% if n[campo] is not none and n[campo] >= 11 %}#16A34A{% elif n[campo] is not none %}#DC2626{% else %}#B8A888{% endif %}">
+          {{ "%.0f"|format(n[campo]) if n[campo] is not none else "—" }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if n.nota_final is not none %}
+    <div style="background:linear-gradient(135deg,#FFFBF0,#FDF3D0);border:1px solid #E8D5A0;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:14px;font-weight:700;color:#7A5F0A">Promedio Final</span>
+      <span style="font-size:28px;font-weight:800;color:{% if n.nota_final >= 11 %}#16A34A{% else %}#DC2626{% endif %}">
+        {{ "%.1f"|format(n.nota_final) }}
+        <span style="font-size:14px;font-weight:500;color:{% if n.nota_final >= 11 %}#16A34A{% else %}#DC2626{% endif %}">
+          / 20 — {% if n.nota_final >= 11 %}APROBADO{% else %}DESAPROBADO{% endif %}
+        </span>
+      </span>
+    </div>
+    {% endif %}
+    {% else %}
+    <div style="text-align:center;padding:32px;color:#B8A888;font-size:13px">
+      Las notas aún no han sido registradas
+    </div>
+    {% endif %}
+
+    <!-- Balance -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:16px;border-top:1px solid #F0EBE0">
+      <span style="font-size:13px;color:#8B7A5A">Saldo pendiente</span>
+      {% if m.saldo_pendiente %}
+      {% set saldo = m.saldo_pendiente() %}
+      <span style="font-size:15px;font-weight:700;color:{% if saldo > 0 %}#DC2626{% else %}#16A34A{% endif %}">
+        {% if saldo > 0 %}S/. {{ "%.0f"|format(saldo) }}{% else %}Al día ✓{% endif %}
+      </span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% else %}
+  <div class="card" style="padding:60px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">📝</div>
+    <div style="font-size:16px;font-weight:600;color:#8B7A5A">No tienes matrículas</div>
+    <div style="font-size:13px;color:#B8A888;margin-top:4px">Habla con el administrador para ser matriculado</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

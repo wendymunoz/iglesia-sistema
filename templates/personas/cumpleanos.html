@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Cumpleaños{% endblock %}
+{% block content %}
+<div style="padding:32px;max-width:900px">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 class="page-title">🎂 Cumpleaños</h1>
+      <p class="page-subtitle">Miembros que cumplen años en {{ MESES[mes_actual - 1] }}</p>
+    </div>
+    <!-- Selector de mes -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      {% for i in range(1, 13) %}
+      <a href="/personas/cumpleanos?mes={{ i }}"
+         style="padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;
+                background:{% if i == mes_actual %}#C9A227{% else %}#F0EBE0{% endif %};
+                color:{% if i == mes_actual %}#fff{% else %}#5A4E38{% endif %}">
+        {{ MESES[i - 1][:3] }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if del_mes %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+    {% for item in del_mes %}
+    {% set p = item.persona %}
+    <div class="card" style="padding:18px;display:flex;align-items:center;gap:14px;
+         {% if item.dias == 0 %}border-left:4px solid #C9A227;{% elif item.dias <= 7 %}border-left:4px solid #86EFAC;{% else %}border-left:4px solid #E5E0D5;{% endif %}">
+      <div style="font-size:32px;line-height:1">🎂</div>
+      <div style="flex:1;min-width:0">
+        <a href="/personas/{{ p.id }}" style="font-size:14px;font-weight:700;color:#1A160E;text-decoration:none">{{ p.nombre_completo }}</a>
+        <div style="font-size:12px;color:#8B7A5A;margin-top:2px">
+          {{ item.fecha.strftime("%d de ") }}{{ MESES[mes_actual - 1] }} — {{ item.edad }} años
+        </div>
+        {% if item.dias == 0 %}
+        <div style="font-size:11px;font-weight:700;color:#C9A227;margin-top:4px">🎉 ¡HOY!</div>
+        {% elif item.dias <= 7 %}
+        <div style="font-size:11px;color:#16A34A;font-weight:600;margin-top:4px">En {{ item.dias }} días</div>
+        {% endif %}
+        {% if p.telefono %}
+        <div style="font-size:11px;color:#8B7A5A;margin-top:2px;font-family:monospace">{{ p.telefono }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card" style="text-align:center;padding:60px">
+    <div style="font-size:48px;margin-bottom:16px">🎂</div>
+    <div style="font-size:16px;font-weight:600;color:#1A160E;margin-bottom:8px">Sin cumpleaños en {{ MESES[mes_actual - 1] }}</div>
+    <div style="font-size:14px;color:#8B7A5A">Prueba con otro mes</div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

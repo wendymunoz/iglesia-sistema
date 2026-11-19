@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ m.persona.nombre_completo }} — Matrícula{% endblock %}
+{% block content %}
+<div style="padding:32px;max-width:800px">
+
+  <div class="page-breadcrumb" style="margin-bottom:6px">
+    <a href="/escuela" style="color:#C9A227;text-decoration:none">Salones</a>
+    <span style="color:#C0B090">›</span>
+    <a href="/escuela/salones/{{ m.salon_id }}" style="color:#C9A227;text-decoration:none">{{ m.salon.nombre }}</a>
+    <span style="color:#C0B090">›</span>
+    {{ m.persona.nombre_completo }}
+  </div>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">{{ m.persona.nombre_completo }}</h1>
+      <div style="font-size:13px;color:#8B7A5A;margin-top:4px">{{ m.salon.nombre }}</div>
+    </div>
+    <span class="badge {% if m.estado == 'activa' or m.estado == 'activo' %}badge-green{% elif m.estado == 'retirada' or m.estado == 'retirado' %}badge-red{% else %}badge-gold{% endif %}" style="font-size:13px;padding:6px 14px">
+      {{ m.estado.title() }}
+    </span>
+  </div>
+
+  {% if msg %}
+  <div class="alert-gold" style="margin-bottom:16px"><span>✅</span><span style="font-size:13px;color:#7A5F0A">{{ msg }}</span></div>
+  {% endif %}
+  {% if error %}
+  <div class="alert-red" style="margin-bottom:16px">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <!-- Balance cards -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+    {% set total_costo = m.conceptos_pago|sum(attribute='monto') if m.conceptos_pago else 0 %}
+    {% set total_pagado = m.abonos|sum(attribute='monto') if m.abonos else 0 %}
+    <div class="card" style="padding:18px;text-align:center">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-bottom:6px">Costo Total</div>
+      <div style="font-size:24px;font-weight:800;color:#1A160E">S/. {{ "%.0f"|format(total_costo) }}</div>
+    </div>
+    <div class="card" style="padding:18px;text-align:center">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-bottom:6px">Pagado</div>
+      <div style="font-size:24px;font-weight:800;color:#16A34A">S/. {{ "%.0f"|format(total_pagado) }}</div>
+    </div>
+    <div class="card" style="padding:18px;text-align:center">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-bottom:6px">Saldo</div>
+      <div style="font-size:24px;font-weight:800;color:{% if saldo > 0 %}#DC2626{% else %}#16A34A{% endif %}">
+        S/. {{ "%.0f"|format(saldo) }}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+    <!-- Register payment -->
+    <div class="card" style="padding:20px">
+      <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 14px">Registrar Pago</h3>
+      <form method="post" action="/escuela/matriculas/{{ m.id }}/abono">
+        <div style="margin-bottom:12px">
+          <label class="field-label">Concepto</label>
+          <select name="concepto_id" class="input-field">
+            {% if m.conceptos_pago %}
+            {% for c in m.conceptos_pago %}
+            <option value="{{ c.id }}">{{ c.concepto }} — S/. {{ "%.0f"|format(c.monto) }}</option>
+            {% endfor %}
+            {% else %}
+            <option value="">Sin conceptos</option>
+            {% endif %}
+          </select>
+        </div>
+        <div style="margin-bottom:12px">
+          <label class="field-label">Monto (S/.) <span style="color:#DC2626">*</span></label>
+          <input type="number" name="monto" step="0.50" min="1" required class="input-field" placeholder="0.00"/>
+        </div>
+        <div style="margin-bottom:14px">
+          <label class="field-label">Fecha</label>
+          <input type="date" name="fecha" class="input-field"/>
+        </div>
+        <button type="submit" class="btn-gold" style="width:100%">Registrar Pago</button>
+      </form>
+    </div>
+
+    <!-- Payment history -->
+    <div class="card" style="padding:20px">
+      <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 14px">Historial de Pagos</h3>
+      {% if m.abonos %}
+      <div>
+        {% for a in m.abonos|sort(attribute='fecha', reverse=True) %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F0EBE0">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#1A160E">{{ a.concepto.concepto if a.concepto else "Pago" }}</div>
+            <div style="font-size:11px;color:#8B7A5A">{{ a.fecha.strftime("%d/%m/%Y") if a.fecha else "" }}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-weight:700;color:#16A34A;font-size:13px">S/. {{ "%.0f"|format(a.monto) }}</span>
+            {% if "admin" in session_user.roles %}
+            <form method="post" action="/escuela/abonos/{{ a.id }}/eliminar" onsubmit="return confirm('¿Eliminar este pago?')">
+              <button type="submit" style="background:none;border:none;color:#DC2626;cursor:pointer;font-size:14px;padding:2px">✕</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:24px;color:#B8A888;font-size:13px">Sin pagos registrados</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Grades -->
+  <div class="card" style="padding:24px;margin-bottom:16px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 18px">Notas (escala 0–20)</h3>
+    <form method="post" action="/escuela/matriculas/{{ m.id }}/nota">
+      {% set n = m.nota %}
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+        {% for campo, label in [("bimestre1","1er Bimestre"),("bimestre2","2do Bimestre"),("bimestre3","3er Bimestre"),("bimestre4","4to Bimestre"),("examen_parcial","Parcial"),("examen_final","Final"),("promedio_practicas","Prácticas"),("asistencia","Asistencia")] %}
+        <div>
+          <label class="field-label" style="font-size:10px">{{ label }}</label>
+          <input type="number" name="{{ campo }}" min="0" max="20" step="0.5"
+            value="{{ n[campo] if n and n[campo] is not none else '' }}"
+            class="input-field" style="text-align:center"/>
+        </div>
+        {% endfor %}
+      </div>
+      {% if n and n.nota_final is not none %}
+      <div style="background:#FFFBF0;border:1px solid #E8D5A0;border-radius:10px;padding:12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;font-weight:600;color:#7A5F0A">Promedio Final</span>
+        <span style="font-size:22px;font-weight:800;color:{% if n.nota_final >= 11 %}#16A34A{% else %}#DC2626{% endif %}">
+          {{ "%.1f"|format(n.nota_final) }}
+        </span>
+      </div>
+      {% endif %}
+      <button type="submit" class="btn-gold">Guardar Notas</button>
+    </form>
+  </div>
+
+  <!-- Status and salon transfer -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card" style="padding:20px">
+      <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 14px">Estado Matrícula</h3>
+      <form method="post" action="/escuela/matriculas/{{ m.id }}/estado" style="display:flex;gap:10px">
+        <select name="estado" class="input-field">
+          {% for e in ESTADOS %}
+          <option value="{{ e }}" {% if m.estado == e %}selected{% endif %}>{{ e.replace("_"," ").title() }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn-gold">Cambiar</button>
+      </form>
+    </div>
+    {% if "admin" in session_user.roles %}
+    <div class="card" style="padding:20px">
+      <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 14px">Cambiar Salón</h3>
+      <form method="post" action="/escuela/matriculas/{{ m.id }}/cambiar-salon" style="display:flex;gap:10px">
+        <select name="salon_id" class="input-field">
+          {% for s in salones %}
+          <option value="{{ s.id }}" {% if s.id == m.salon_id %}selected{% endif %}>{{ s.nombre }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn-gold">Mover</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

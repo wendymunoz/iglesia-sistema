@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Asistencia — {{ culto.tipo }} {{ culto.fecha }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; min-height:100vh; background:#F7F5F0; }
+    .header { background:linear-gradient(135deg,#1A160E,#2F2210); padding:24px 32px; }
+    .gold-bar { height:4px; background:linear-gradient(90deg,#C9A227,#F5D97F,#C9A227); }
+    .main { padding:32px; max-width:600px; margin:0 auto; }
+    .card { background:#fff; border-radius:20px; padding:28px; box-shadow:0 4px 20px rgba(0,0,0,0.08); margin-bottom:20px; }
+    .dni-input { width:100%; border:2px solid #E5E0D5; border-radius:12px; padding:16px 20px; font-size:28px; font-weight:700; color:#1A160E; text-align:center; outline:none; letter-spacing:4px; background:#FAFAF8; transition:all 0.15s; }
+    .dni-input:focus { border-color:#C9A227; box-shadow:0 0 0 4px rgba(201,162,39,0.12); background:#fff; }
+    .btn { width:100%; background:linear-gradient(135deg,#D4A820,#A07818); color:#fff; font-weight:800; border:none; border-radius:14px; padding:18px; font-size:18px; cursor:pointer; margin-top:16px; transition:all 0.2s; box-shadow:0 4px 14px rgba(201,162,39,0.3); }
+    .btn:hover { transform:translateY(-1px); box-shadow:0 6px 24px rgba(201,162,39,0.5); }
+    .msg { border-radius:14px; padding:16px 20px; margin-bottom:16px; font-size:15px; font-weight:600; display:flex; align-items:center; gap:12px; }
+    .msg-ok { background:#ECFDF5; border:1.5px solid #A7F3D0; color:#065F46; }
+    .msg-dup { background:#FFFBF0; border:1.5px solid #E8D5A0; color:#7A5F0A; }
+    .msg-err { background:#FEF2F2; border:1.5px solid #FECACA; color:#991B1B; }
+    .item { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F0EBE0; }
+    .item:last-child { border-bottom:none; }
+    .badge { background:linear-gradient(135deg,#C9A227,#8B6914); color:#fff; font-weight:800; border-radius:10px; padding:4px 12px; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px">
+      <a href="/ofrendas" style="color:rgba(255,255,255,0.5);text-decoration:none">← Cultos</a>
+    </div>
+    <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0">⛪ {{ culto.tipo|title }} — {{ culto.fecha.strftime("%d/%m/%Y") if culto.fecha else "" }}</h1>
+    <p style="color:rgba(255,255,255,0.6);font-size:13px;margin-top:4px">Registro de asistencia</p>
+  </div>
+  <div class="gold-bar"></div>
+
+  <div class="main">
+    <div class="card">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;display:block;margin-bottom:8px">DNI del asistente</label>
+      <input type="text" id="dni" class="dni-input" placeholder="_ _ _ _ _ _ _ _" maxlength="8" inputmode="numeric"/>
+      <button class="btn" onclick="registrar()">✓ Registrar Asistencia</button>
+    </div>
+
+    <div id="msg" style="display:none"></div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-size:14px;font-weight:700;color:#1A160E;margin:0">Asistentes</h3>
+        <span class="badge" id="count">{{ asistencias|length }}</span>
+      </div>
+      <div id="lista">
+        {% for a in asistencias %}
+        <div class="item">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1A160E">{{ a.persona.nombre_completo if a.persona else a.nombre_visitante }}</div>
+            <div style="font-size:11px;color:#8B7A5A">{{ a.tipo }}</div>
+          </div>
+          <span style="font-size:18px">✅</span>
+        </div>
+        {% endfor %}
+        {% if not asistencias %}
+        <div id="empty" style="text-align:center;padding:32px;color:#B8A888;font-size:14px">Esperando primer registro...</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById('dni')
+    const msgEl = document.getElementById('msg')
+    const lista = document.getElementById('lista')
+    const countEl = document.getElementById('count')
+    let count = {{ asistencias|length }}
+
+    input.focus()
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') registrar() })
+
+    async function registrar() {
+      const dni = input.value.trim()
+      if (!dni) return
+      try {
+        const res = await fetch('/cultos/{{ culto.id }}/asistencia', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({dni})
+        })
+        const data = await res.json()
+        showMsg(data)
+        if (data.ok && !data.ya_registrado) {
+          const empty = document.getElementById('empty')
+          if (empty) empty.remove()
+          const div = document.createElement('div')
+          div.className = 'item'
+          div.innerHTML = `<div><div style="font-size:14px;font-weight:600;color:#1A160E">${data.nombre}</div><div style="font-size:11px;color:#8B7A5A">miembro</div></div><span style="font-size:18px">✅</span>`
+          lista.insertBefore(div, lista.firstChild)
+          count++; countEl.textContent = count
+        }
+      } catch { showMsg({ok:false}) }
+      input.value = ''; input.focus()
+    }
+
+    function showMsg(data) {
+      let cls, icon, text
+      if (data.ok && !data.ya_registrado) { cls='msg-ok'; icon='✅'; text=`${data.nombre} — registrado` }
+      else if (data.ya_registrado) { cls='msg-dup'; icon='⚠️'; text=`${data.nombre} ya fue registrado` }
+      else { cls='msg-err'; icon='❌'; text=data.error || 'DNI no encontrado' }
+      msgEl.className = `msg ${cls}`
+      msgEl.innerHTML = `<span style="font-size:22px">${icon}</span><span>${text}</span>`
+      msgEl.style.display = 'flex'
+      setTimeout(() => { msgEl.style.display = 'none' }, 4000)
+    }
+  </script>
+</body>
+</html>

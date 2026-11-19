@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ salon.nombre }}{% endblock %}
+{% block content %}
+<div style="padding:32px;max-width:860px">
+
+  <div class="page-breadcrumb" style="margin-bottom:6px">
+    <a href="/escuela" style="color:#C9A227;text-decoration:none">Salones</a>
+    <span style="color:#C0B090">›</span>
+    {{ salon.nombre }}
+  </div>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">{{ salon.nombre }}</h1>
+      <div style="font-size:13px;color:#8B7A5A;margin-top:4px">Nivel {{ salon.nivel }} · {{ salon.turno }} · {{ salon.anio }}</div>
+    </div>
+    {% if "admin" in session_user.roles %}
+    <button onclick="document.getElementById('form-matricular').style.display=document.getElementById('form-matricular').style.display==='none'?'block':'none'" class="btn-gold">
+      + Matricular Estudiante
+    </button>
+    {% endif %}
+  </div>
+
+  {% if msg %}
+  <div class="alert-gold" style="margin-bottom:16px"><span>✅</span><span style="font-size:13px;color:#7A5F0A">{{ msg }}</span></div>
+  {% endif %}
+  {% if error %}
+  <div class="alert-red" style="margin-bottom:16px">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <!-- Enroll form -->
+  {% if "admin" in session_user.roles %}
+  <div id="form-matricular" style="display:none;margin-bottom:20px">
+    <div class="card" style="padding:20px">
+      <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 14px">Matricular Estudiante</h3>
+      <form method="post" action="/escuela/salones/{{ salon.id }}/matricular" style="display:flex;gap:10px;align-items:flex-end">
+        <div style="flex:1">
+          <label class="field-label">DNI del Estudiante</label>
+          <input type="text" name="dni" required maxlength="12" class="input-field" placeholder="Ingresa el DNI"/>
+        </div>
+        <button type="submit" class="btn-gold">Matricular</button>
+        <button type="button" onclick="document.getElementById('form-matricular').style.display='none'" class="btn-outline">Cancelar</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+    {% set activas = salon.matriculas|selectattr("estado","in",["activa","activo"])|list %}
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:#1A160E">{{ salon.matriculas|length }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-top:2px">Total</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:#16A34A">{{ activas|length }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-top:2px">Activos</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:#DC2626">{{ (salon.matriculas|length - activas|length) }}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-top:2px">Retirados</div>
+    </div>
+  </div>
+
+  <!-- Students table -->
+  <div class="card">
+    {% if salon.matriculas %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Estudiante</th>
+          <th>DNI</th>
+          <th>Estado</th>
+          <th>Saldo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mat in salon.matriculas %}
+        <tr>
+          <td style="font-weight:600;color:#1A160E">{{ mat.persona.nombre_completo }}</td>
+          <td style="font-family:monospace;font-size:12px;color:#8B7A5A">{{ mat.persona.dni }}</td>
+          <td>
+            {% if mat.estado in ["activa","activo"] %}
+            <span class="badge badge-green">Activa</span>
+            {% elif mat.estado in ["retirada","retirado"] %}
+            <span class="badge badge-red">Retirada</span>
+            {% else %}
+            <span class="badge badge-gray">{{ mat.estado }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if saldo_fn %}
+            {% set s = saldo_fn(mat) %}
+            {% if s > 0 %}
+            <span class="badge badge-red">S/. {{ "%.0f"|format(s) }}</span>
+            {% else %}
+            <span class="badge badge-green">Al día</span>
+            {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            <a href="/escuela/matriculas/{{ mat.id }}" style="color:#C9A227;font-size:13px;font-weight:600;text-decoration:none">Ver →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:60px;color:#B8A888">
+      <div style="font-size:40px;margin-bottom:12px">📚</div>
+      <div>Aún no hay estudiantes matriculados</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

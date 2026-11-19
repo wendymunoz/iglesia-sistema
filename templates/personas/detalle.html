@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}{{ p.nombre_completo }}{% endblock %}
+{% block content %}
+<div style="padding:32px;max-width:760px">
+
+  <div class="page-breadcrumb" style="margin-bottom:6px">
+    <a href="/personas" style="color:#C9A227;text-decoration:none">Personas</a>
+    <span style="color:#C0B090">›</span>
+    {{ p.nombre_completo }}
+  </div>
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px">
+    <div>
+      <h1 class="page-title">{{ p.nombre_completo }}</h1>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <span style="font-family:monospace;background:#F7F5F0;border:1px solid #E5E0D5;padding:3px 10px;border-radius:6px;font-size:13px;color:#5A4E38">{{ p.dni }}</span>
+        {% if p.activo %}
+        <span class="badge badge-green">Activo</span>
+        {% else %}
+        <span class="badge badge-red">Inactivo</span>
+        {% endif %}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <form method="post" action="/personas/{{ p.id }}/toggle">
+        <button type="submit" class="btn-outline" style="font-size:12px;padding:8px 14px">
+          {{ "Desactivar" if p.activo else "Activar" }}
+        </button>
+      </form>
+      {% if p.usuario %}
+      <form method="post" action="/personas/{{ p.id }}/reset-pin">
+        <button type="submit" class="btn-outline" style="font-size:12px;padding:8px 14px">Resetear PIN</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if msg %}
+  <div class="alert-gold" style="margin-bottom:16px">
+    <span style="font-size:18px">✅</span>
+    <span style="font-size:13px;color:#7A5F0A">{{ msg }}</span>
+  </div>
+  {% endif %}
+  {% if error %}
+  <div class="alert-red" style="margin-bottom:16px">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <!-- Edit form -->
+  <div class="card" style="padding:24px;margin-bottom:16px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 20px">Datos Personales</h3>
+    <form method="post" action="/personas/{{ p.id }}/editar">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="grid-column:1/-1">
+          <label class="field-label">DNI</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="text" id="edit-dni" name="dni" value="{{ p.dni }}" maxlength="8" class="input-field" style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:1px" inputmode="numeric"/>
+            <button type="button" onclick="consultarReniecEdit()" style="white-space:nowrap;font-size:12px;padding:8px 12px;background:#F7F5F0;border:1px solid #C9A227;border-radius:8px;cursor:pointer;color:#7A5F0A;font-weight:600">🔍 Consultar RENIEC</button>
+          </div>
+          <div id="reniec-edit-preview" style="font-size:12px;margin-top:5px;min-height:16px"></div>
+        </div>
+        <div>
+          <label class="field-label">Nombre(s)</label>
+          <input type="text" id="edit-nombre" name="nombre" value="{{ p.nombre }}" required class="input-field"/>
+        </div>
+        <div>
+          <label class="field-label">Apellido(s)</label>
+          <input type="text" id="edit-apellido" name="apellido" value="{{ p.apellido }}" required class="input-field"/>
+        </div>
+        <div>
+          <label class="field-label">Teléfono</label>
+          <input type="text" name="telefono" value="{{ p.telefono or '' }}" class="input-field"/>
+        </div>
+        <div>
+          <label class="field-label">Email</label>
+          <input type="email" name="email" value="{{ p.email or '' }}" class="input-field"/>
+        </div>
+        <div>
+          <label class="field-label">Talla Polo</label>
+          <select name="talla_polo" class="input-field">
+            <option value="">— Sin talla —</option>
+            {% for t in ["XS","S","M","L","XL","XXL"] %}
+            <option value="{{ t }}" {% if p.talla_polo == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <button type="submit" class="btn-gold">Guardar Cambios</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Etapa -->
+  <div class="card" style="padding:24px;margin-bottom:16px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">Etapa Espiritual</h3>
+    <form method="post" action="/personas/{{ p.id }}/etapa" style="display:flex;gap:10px;align-items:flex-end">
+      <div style="flex:1">
+        <select name="etapa" class="input-field">
+          {% for e in ["visitante","pre_encuentro","encuentro","pos_encuentro","escuela"] %}
+          <option value="{{ e }}" {% if p.proceso and p.proceso.etapa == e %}selected{% endif %}>
+            {{ e.replace("_"," ").title() }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-gold">Actualizar</button>
+    </form>
+    {% if p.proceso %}
+    <div style="margin-top:8px;font-size:12px;color:#8B7A5A">
+      Etapa actual: <strong style="color:#C9A227">{{ p.proceso.etapa.replace("_"," ").title() }}</strong>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Roles -->
+  <div class="card" style="padding:24px;margin-bottom:16px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">Roles</h3>
+    <form method="post" action="/personas/{{ p.id }}/roles">
+      {% set roles_activos = p.roles|selectattr("activo")|map(attribute="rol")|list %}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+        {% for k, v in ROLES.items() %}
+        <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid {% if k in roles_activos %}#C9A227{% else %}#E5E0D5{% endif %};border-radius:10px;cursor:pointer;background:{% if k in roles_activos %}#FFFBF0{% else %}#fff{% endif %}">
+          <input type="checkbox" name="roles" value="{{ k }}" {% if k in roles_activos %}checked{% endif %} style="accent-color:#C9A227;width:16px;height:16px"/>
+          <span style="font-size:13px;font-weight:{% if k in roles_activos %}700{% else %}500{% endif %};color:{% if k in roles_activos %}#7A5F0A{% else %}#3A3020{% endif %}">{{ v }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn-gold">Actualizar Roles</button>
+    </form>
+  </div>
+
+  <!-- Matrículas -->
+  {% if p.matriculas %}
+  <div class="card" style="padding:24px;margin-bottom:16px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">📚 Escuela</h3>
+    {% for m in p.matriculas %}
+    <a href="/escuela/matriculas/{{ m.id }}" style="display:flex;align-items:center;justify-content:space-between;padding:12px;border:1.5px solid #E5E0D5;border-radius:10px;margin-bottom:8px;text-decoration:none;transition:border-color 0.15s" onmouseover="this.style.borderColor='#C9A227'" onmouseout="this.style.borderColor='#E5E0D5'">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#1A160E">{{ m.salon.nombre }}</div>
+        <div style="font-size:11px;color:#8B7A5A">Estado: {{ m.estado }}</div>
+      </div>
+      <div>
+        {% if saldo_fn %}
+        {% set saldo = saldo_fn(m) %}
+        {% if saldo > 0 %}
+        <span class="badge badge-red">Debe S/. {{ "%.0f"|format(saldo) }}</span>
+        {% else %}
+        <span class="badge badge-green">Al día ✓</span>
+        {% endif %}
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ─── TRAZABILIDAD ─────────────────────────────────────────────── -->
+  <div style="font-size:13px;font-weight:800;color:#8B7A5A;text-transform:uppercase;letter-spacing:1px;margin:28px 0 12px">Trazabilidad</div>
+
+  <!-- Encuentro -->
+  {% if inscripciones_encuentro %}
+  <div class="card" style="padding:20px;margin-bottom:16px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 12px">🕊️ Encuentro</h3>
+    {% for ins in inscripciones_encuentro %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F0EBE0">
+      <div>
+        <a href="/encuentro/{{ ins.grupo_id }}" style="font-size:13px;font-weight:600;color:#1A160E;text-decoration:none" onmouseover="this.style.color='#C9A227'" onmouseout="this.style.color='#1A160E'">
+          {{ ins.grupo.nombre if ins.grupo else "Grupo #" ~ ins.grupo_id }}
+        </a>
+        {% if ins.grupo and ins.grupo.fecha_encuentro %}
+        <div style="font-size:11px;color:#8B7A5A">{{ ins.grupo.fecha_encuentro.strftime("%d/%m/%Y") }}</div>
+        {% endif %}
+      </div>
+      <span class="badge {% if ins.estado == 'completado' %}badge-green{% elif ins.estado == 'retirado' %}badge-red{% else %}badge-gold{% endif %}">
+        {{ ins.estado.title() }}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Reportes de célula como líder -->
+  {% if reportes_lider %}
+  <div class="card" style="padding:20px;margin-bottom:16px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 12px">🏠 Reportes de Célula (como líder)</h3>
+    {% for r in reportes_lider %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F0EBE0">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#1A160E">
+          {{ r.celula.nombre_casa if r.celula else r.tema or "Reporte" }}
+        </div>
+        <div style="font-size:11px;color:#8B7A5A">
+          {{ r.fecha.strftime("%d/%m/%Y") if r.fecha else "—" }} · {{ r.total_asistentes or 0 }} asistentes
+        </div>
+      </div>
+      {% if r.total_nuevos %}
+      <span class="badge badge-green">+{{ r.total_nuevos }} nuevo(s)</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Asistencia a reuniones de líderes -->
+  {% if asistencias %}
+  <div class="card" style="padding:20px;margin-bottom:16px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 12px">📋 Asistencia a Reuniones de Líderes</h3>
+    {% for a in asistencias %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F0EBE0">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#1A160E">{{ a.reunion.descripcion if a.reunion else "Reunión" }}</div>
+        <div style="font-size:11px;color:#8B7A5A">
+          {{ a.reunion.fecha.strftime("%d/%m/%Y") if a.reunion and a.reunion.fecha else "—" }}
+          {% if a.hora_entrada %} · {{ a.hora_entrada }}{% endif %}
+        </div>
+      </div>
+      <span style="font-size:18px">✅</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if not inscripciones_encuentro and not reportes_lider and not asistencias %}
+  <div class="card" style="padding:24px;text-align:center;color:#B8A888;margin-bottom:16px">
+    <div style="font-size:13px">Sin actividad registrada aún en los módulos de seguimiento</div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function consultarReniecEdit() {
+  const dni = document.getElementById('edit-dni').value.trim()
+  reniecBuscar(dni, {
+    preview: 'reniec-edit-preview',
+    onDone: function(data) {
+      const n = document.getElementById('edit-nombre')
+      const a = document.getElementById('edit-apellido')
+      if (n) n.value = data.nombre
+      if (a) a.value = (data.apellido_paterno + ' ' + data.apellido_materno).trim()
+    }
+  })
+}
+reniecAuto('edit-dni', {
+  preview: 'reniec-edit-preview',
+  onDone: function(data) {
+    const n = document.getElementById('edit-nombre')
+    const a = document.getElementById('edit-apellido')
+    if (n && !n.value) n.value = data.nombre
+    if (a && !a.value) a.value = (data.apellido_paterno + ' ' + data.apellido_materno).trim()
+  }
+})
+</script>
+{% endblock %}

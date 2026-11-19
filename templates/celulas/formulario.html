@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reporte de Célula</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; min-height:100vh; background:#F7F5F0; }
+    .header { background:linear-gradient(135deg,#1A160E,#2F2210); padding:20px 24px; }
+    .gold-bar { height:4px; background:linear-gradient(90deg,#C9A227,#F5D97F,#C9A227); }
+    .container { max-width:720px; margin:0 auto; padding:24px; }
+
+    .step-row { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:28px; }
+    .step-circle { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; transition:all 0.3s; }
+    .step-circle.done { background:linear-gradient(135deg,#D4A820,#A07818); color:#fff; }
+    .step-circle.active { background:linear-gradient(135deg,#D4A820,#A07818); color:#fff; box-shadow:0 0 0 4px rgba(201,162,39,0.2); }
+    .step-circle.pending { background:#E5E0D5; color:#8B7A5A; }
+    .step-label { font-size:10px; font-weight:700; text-align:center; margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; color:#B8A888; }
+    .step-label.active { color:#C9A227; }
+    .step-connector { width:40px; height:2px; background:#E5E0D5; margin:0 2px 20px; }
+    .step-connector.done { background:#C9A227; }
+
+    .card { background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,0.07); padding:24px; margin-bottom:16px; }
+    .card-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#C9A227; margin:0 0 18px; }
+    .field-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#8B7A5A; display:block; margin-bottom:5px; }
+    .input-field { width:100%; border:1.5px solid #E5E0D5; border-radius:10px; padding:10px 14px; font-size:14px; color:#1A160E; background:#FAFAF8; outline:none; transition:all 0.15s; }
+    .input-field:focus { border-color:#C9A227; box-shadow:0 0 0 3px rgba(201,162,39,0.12); background:#fff; }
+    select.input-field { -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23C9A227' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; background-color:#FAFAF8; padding-right:36px; }
+    select.input-field:focus { background-color:#fff; }
+
+    .btn-gold { background:linear-gradient(135deg,#D4A820,#A07818); color:#fff; font-weight:700; border:none; border-radius:12px; padding:12px 24px; font-size:14px; cursor:pointer; transition:all 0.2s; box-shadow:0 3px 10px rgba(201,162,39,0.3); }
+    .btn-gold:hover { box-shadow:0 5px 16px rgba(201,162,39,0.4); transform:translateY(-1px); }
+    .btn-outline { background:#fff; color:#8B6914; border:2px solid #E8D5A0; border-radius:12px; padding:11px 20px; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.15s; }
+    .btn-outline:hover { border-color:#C9A227; }
+
+    .asistente-card { border:1.5px solid #E5E0D5; border-radius:12px; padding:16px; margin-bottom:12px; background:#FAFAF8; }
+    .tipo-btn { padding:7px 16px; border-radius:8px; font-size:12px; font-weight:700; border:none; cursor:pointer; transition:all 0.15s; }
+    .tipo-btn.recurrente { background:#FFFBF0; color:#7A5F0A; border:1.5px solid #E8D5A0; }
+    .tipo-btn.nuevo { background:#ECFDF5; color:#065F46; border:1.5px solid #A7F3D0; }
+    .tipo-btn.active-btn { box-shadow:0 0 0 2px #C9A227; }
+    .datos-nuevo { display:none; background:#F0FDF4; border-radius:10px; padding:14px; margin-top:12px; border:1px solid #A7F3D0; }
+    .alert-red { background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:12px 16px; color:#991B1B; font-size:13px; margin-bottom:12px; }
+    .success-icon { width:72px; height:72px; background:linear-gradient(135deg,#D4A820,#A07818); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px">
+      <a href="/celulas" style="color:rgba(255,255,255,0.5);text-decoration:none">← Células</a>
+    </div>
+    <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0">Reporte de Célula</h1>
+  </div>
+  <div class="gold-bar"></div>
+
+  <div class="container">
+    <div id="step-indicator" class="step-row"></div>
+
+    <!-- PASO 1: Líder -->
+    <div id="step1">
+      <div class="card">
+        <div class="card-title">Verificación del Líder</div>
+        <label class="field-label">DNI del Líder <span style="color:#DC2626">*</span></label>
+        <div style="display:flex;gap:10px">
+          <input type="text" id="lider-dni" class="input-field" placeholder="Ingresa tu DNI" maxlength="12" style="flex:1"/>
+          <button onclick="verificarLider()" class="btn-gold">Verificar</button>
+        </div>
+        <div id="lider-result" style="display:none;margin-top:12px;padding:14px;border-radius:10px"></div>
+
+        <!-- Quick create form (shown when leader DNI not found) -->
+        <div id="lider-crear" style="display:none;margin-top:12px;background:#FFFBF0;border:1.5px solid #C9A227;border-radius:12px;padding:16px">
+          <div style="font-size:12px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px">
+            👤 DNI no encontrado — Crear perfil rápido
+          </div>
+          <div style="font-size:12px;color:#8B7A5A;margin-bottom:10px">
+            Ingresa el nombre del líder. Podrás completar sus datos desde Personas → Regularizar.
+          </div>
+          <input type="text" id="lider-nombre-nuevo" class="input-field" placeholder="Nombre completo del líder" style="margin-bottom:10px"/>
+          <div style="display:flex;gap:8px">
+            <button onclick="crearLiderRapido()" class="btn-gold" style="flex:1">Crear y Continuar →</button>
+            <button onclick="document.getElementById('lider-crear').style.display='none'" class="btn-outline" style="font-size:12px">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <button onclick="irPaso(2)" id="btn-paso2" class="btn-gold" style="display:none;width:100%;padding:14px;font-size:15px">
+        Continuar →
+      </button>
+    </div>
+
+    <!-- PASO 2: Datos -->
+    <div id="step2" style="display:none">
+      <div class="card">
+        <div class="card-title">Datos de la Célula</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <label class="field-label">Tipo</label>
+            <select id="tipo_celula" class="input-field">
+              <option value="abierta">Abierta</option>
+              <option value="consolidacion">Consolidación</option>
+              <option value="liderazgo">Liderazgo</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Modalidad</label>
+            <select id="modalidad" class="input-field">
+              <option value="presencial">Presencial</option>
+              <option value="virtual">Virtual</option>
+              <option value="hibrida">Híbrida</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Fecha</label>
+            <input type="date" id="fecha" class="input-field"/>
+          </div>
+          <div>
+            <label class="field-label">Hora</label>
+            <input type="time" id="hora" class="input-field"/>
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="field-label">Tema / Mensaje</label>
+            <input type="text" id="tema" class="input-field" placeholder="Tema tratado en la célula"/>
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="field-label">Dirección</label>
+            <input type="text" id="direccion" class="input-field" placeholder="Lugar de reunión"/>
+          </div>
+          <div style="grid-column:1/-1">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#1A160E">
+              <input type="checkbox" id="es_nueva_celula" style="accent-color:#C9A227;width:16px;height:16px"/>
+              ¿Es una nueva célula?
+            </label>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="irPaso(1)" class="btn-outline">← Atrás</button>
+        <button onclick="irPaso(3)" class="btn-gold" style="flex:1;padding:14px;font-size:15px">Continuar →</button>
+      </div>
+    </div>
+
+    <!-- PASO 3: Asistentes -->
+    <div id="step3" style="display:none">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="card-title" style="margin:0">Asistentes</div>
+          <button onclick="agregarAsistente()" class="btn-outline" style="font-size:12px;padding:8px 14px">+ Agregar</button>
+        </div>
+        <div id="asistentes-lista"></div>
+        <div id="empty-asistentes" style="text-align:center;padding:32px;color:#B8A888;font-size:14px">
+          Presiona "+ Agregar" para incluir asistentes
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="irPaso(2)" class="btn-outline">← Atrás</button>
+        <button onclick="irPaso(4)" class="btn-gold" style="flex:1;padding:14px;font-size:15px">Continuar →</button>
+      </div>
+    </div>
+
+    <!-- PASO 4: Confirmar -->
+    <div id="step4" style="display:none">
+      <div class="card">
+        <div class="card-title">Confirmación y Cierre</div>
+        <div id="resumen" style="background:#FFFBF0;border:1px solid #E8D5A0;border-radius:12px;padding:16px;margin-bottom:16px;font-size:13px;color:#5A4E38"></div>
+        <div style="margin-bottom:14px">
+          <label class="field-label">Ofrenda recogida (S/.)</label>
+          <input type="number" id="ofrenda" min="0" step="0.50" class="input-field" placeholder="0.00"/>
+        </div>
+        <div>
+          <label class="field-label">Observaciones</label>
+          <textarea id="observaciones" class="input-field" rows="3" style="resize:vertical" placeholder="Testimonios, peticiones de oración, novedades..."></textarea>
+        </div>
+      </div>
+      <div id="error-final" style="display:none" class="alert-red"></div>
+      <div style="display:flex;gap:10px">
+        <button onclick="irPaso(3)" class="btn-outline">← Atrás</button>
+        <button onclick="enviarReporte()" id="btn-enviar" class="btn-gold" style="flex:1;padding:14px;font-size:15px">✓ Enviar Reporte</button>
+      </div>
+    </div>
+
+    <!-- ÉXITO -->
+    <div id="step5" style="display:none">
+      <div class="card" style="text-align:center;padding:48px 24px">
+        <div class="success-icon">✅</div>
+        <h2 style="font-size:22px;font-weight:800;color:#1A160E;margin:0 0 8px">¡Reporte Enviado!</h2>
+        <p style="color:#8B7A5A;font-size:14px;margin-bottom:28px">El reporte de la célula fue registrado exitosamente.</p>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <a href="/celulas/formulario" class="btn-gold" style="text-decoration:none">Nuevo Reporte</a>
+          <a href="/celulas" class="btn-outline" style="text-decoration:none;display:inline-flex;align-items:center">Ver Reportes</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 1
+    let liderDNI = '', liderNombre = '', celulaNombre = ''
+    let asistentes = [], asistCount = 0
+    const stepLabels = ['Líder', 'Célula', 'Asistentes', 'Confirmar']
+
+    function renderSteps() {
+      const el = document.getElementById('step-indicator')
+      el.innerHTML = ''
+      for (let i = 1; i <= 4; i++) {
+        const wrap = document.createElement('div')
+        wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center'
+        const circle = document.createElement('div')
+        const cls = i < currentStep ? 'done' : i === currentStep ? 'active' : 'pending'
+        circle.className = 'step-circle ' + cls
+        circle.textContent = i < currentStep ? '✓' : i
+        const label = document.createElement('div')
+        label.className = 'step-label' + (i <= currentStep ? ' active' : '')
+        label.textContent = stepLabels[i-1]
+        wrap.appendChild(circle); wrap.appendChild(label)
+        el.appendChild(wrap)
+        if (i < 4) {
+          const conn = document.createElement('div')
+          conn.className = 'step-connector' + (i < currentStep ? ' done' : '')
+          el.appendChild(conn)
+        }
+      }
+    }
+
+    function irPaso(n) {
+      if (n === 4) actualizarResumen()
+      for (let i = 1; i <= 5; i++) {
+        const s = document.getElementById('step' + i)
+        if (s) s.style.display = 'none'
+      }
+      currentStep = n
+      document.getElementById('step' + n).style.display = 'block'
+      renderSteps()
+      window.scrollTo(0, 0)
+    }
+
+    async function verificarLider() {
+      const dni = document.getElementById('lider-dni').value.trim()
+      if (!dni) return
+      const res = document.getElementById('lider-result')
+      res.style.display = 'block'
+      res.style.cssText = 'display:block;margin-top:12px;padding:14px;border-radius:10px;background:#FFFBF0;border:1px solid #E8D5A0'
+      res.innerHTML = '<span style="color:#7A5F0A">🔍 Verificando...</span>'
+      try {
+        const r = await fetch('/api/personas/dni/' + dni)
+        const data = await r.json()
+        if (data.encontrado) {
+          liderDNI = dni; liderNombre = data.nombre; celulaNombre = data.celula || 'Su célula'
+          res.style.cssText = 'display:block;margin-top:12px;padding:14px;border-radius:10px;background:#ECFDF5;border:1.5px solid #A7F3D0'
+          res.innerHTML = `<div style="font-weight:700;color:#065F46;font-size:15px">✅ ${liderNombre}</div><div style="font-size:12px;color:#16A34A;margin-top:2px">${celulaNombre}</div>`
+          document.getElementById('lider-crear').style.display = 'none'
+          document.getElementById('btn-paso2').style.display = 'block'
+        } else {
+          res.style.cssText = 'display:block;margin-top:12px;padding:14px;border-radius:10px;background:#FEF2F2;border:1.5px solid #FECACA'
+          res.innerHTML = `<span style="color:#991B1B">❌ DNI <strong>${dni}</strong> no encontrado — puedes crearlo abajo.</span>`
+          document.getElementById('btn-paso2').style.display = 'none'
+          document.getElementById('lider-crear').style.display = 'block'
+          document.getElementById('lider-nombre-nuevo').focus()
+        }
+      } catch {
+        res.innerHTML = '<span style="color:#991B1B">❌ Error de conexión.</span>'
+      }
+    }
+    document.getElementById('lider-dni').addEventListener('keydown', e => { if (e.key === 'Enter') verificarLider() })
+
+    async function crearLiderRapido() {
+      const dni = document.getElementById('lider-dni').value.trim()
+      const nombre = document.getElementById('lider-nombre-nuevo').value.trim()
+      if (!nombre) { document.getElementById('lider-nombre-nuevo').style.borderColor = '#DC2626'; return }
+      try {
+        const r = await fetch('/api/personas/rapido', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({dni, nombre})
+        })
+        const data = await r.json()
+        if (data.ok) {
+          liderDNI = dni; liderNombre = data.nombre; celulaNombre = '—'
+          const res = document.getElementById('lider-result')
+          res.style.cssText = 'display:block;margin-top:12px;padding:14px;border-radius:10px;background:#ECFDF5;border:1.5px solid #A7F3D0'
+          res.innerHTML = `<div style="font-weight:700;color:#065F46;font-size:15px">✅ ${liderNombre}</div><div style="font-size:11px;color:#16A34A;margin-top:2px">Creado — pendiente completar datos en Personas</div>`
+          document.getElementById('lider-crear').style.display = 'none'
+          document.getElementById('btn-paso2').style.display = 'block'
+        } else { alert(data.error || 'Error al crear') }
+      } catch { alert('Error de conexión') }
+    }
+
+    function agregarAsistente() {
+      const id = ++asistCount
+      asistentes.push({ id, tipo: 'recurrente', nombre: '', dni: '', telefono: '', como_llego: '' })
+      document.getElementById('empty-asistentes').style.display = 'none'
+      const lista = document.getElementById('asistentes-lista')
+      const card = document.createElement('div')
+      card.className = 'asistente-card'; card.id = 'asist-' + id
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:600;color:#1A160E">Asistente #${id}</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="tipo-btn recurrente active-btn" id="btn-rec-${id}" onclick="setTipo(${id},'recurrente')">Recurrente</button>
+            <button class="tipo-btn nuevo" id="btn-nue-${id}" onclick="setTipo(${id},'nuevo')">Nuevo</button>
+            <button onclick="eliminarAsistente(${id})" style="background:none;border:none;color:#DC2626;cursor:pointer;font-size:18px;padding:2px 8px">✕</button>
+          </div>
+        </div>
+        <input type="text" placeholder="Nombre del asistente" class="input-field" style="margin-bottom:8px" oninput="asistentes.find(a=>a.id===${id}).nombre=this.value"/>
+        <div id="datos-nuevo-${id}" class="datos-nuevo">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <input type="text" placeholder="DNI (opcional)" class="input-field" oninput="asistentes.find(a=>a.id===${id}).dni=this.value"/>
+            <input type="text" placeholder="Teléfono" class="input-field" oninput="asistentes.find(a=>a.id===${id}).telefono=this.value"/>
+            <div style="grid-column:1/-1"><input type="text" placeholder="¿Cómo llegó a la célula?" class="input-field" oninput="asistentes.find(a=>a.id===${id}).como_llego=this.value"/></div>
+          </div>
+        </div>`
+      lista.appendChild(card)
+    }
+
+    function setTipo(id, tipo) {
+      const a = asistentes.find(a => a.id === id); if (a) a.tipo = tipo
+      document.getElementById('btn-rec-' + id).classList.toggle('active-btn', tipo === 'recurrente')
+      document.getElementById('btn-nue-' + id).classList.toggle('active-btn', tipo === 'nuevo')
+      document.getElementById('datos-nuevo-' + id).style.display = tipo === 'nuevo' ? 'block' : 'none'
+    }
+
+    function eliminarAsistente(id) {
+      asistentes = asistentes.filter(a => a.id !== id)
+      const c = document.getElementById('asist-' + id); if (c) c.remove()
+      if (!asistentes.length) document.getElementById('empty-asistentes').style.display = 'block'
+    }
+
+    function actualizarResumen() {
+      const fecha = document.getElementById('fecha').value
+      const tipo = document.getElementById('tipo_celula').value
+      const modalidad = document.getElementById('modalidad').value
+      const tema = document.getElementById('tema').value
+      const nuevos = asistentes.filter(a => a.tipo === 'nuevo').length
+      document.getElementById('resumen').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+          <div><b style="color:#C9A227">Líder:</b> ${liderNombre || '—'}</div>
+          <div><b style="color:#C9A227">Célula:</b> ${celulaNombre || '—'}</div>
+          <div><b style="color:#C9A227">Fecha:</b> ${fecha || '—'}</div>
+          <div><b style="color:#C9A227">Tipo:</b> ${tipo} · ${modalidad}</div>
+          <div><b style="color:#C9A227">Tema:</b> ${tema || '—'}</div>
+          <div><b style="color:#C9A227">Asistentes:</b> ${asistentes.length} (${nuevos} nuevos)</div>
+        </div>`
+    }
+
+    async function enviarReporte() {
+      const btn = document.getElementById('btn-enviar')
+      btn.disabled = true; btn.textContent = 'Enviando...'
+      const errEl = document.getElementById('error-final')
+      errEl.style.display = 'none'
+      const payload = {
+        lider_dni: liderDNI,
+        tipo_celula: document.getElementById('tipo_celula').value,
+        modalidad: document.getElementById('modalidad').value,
+        fecha_reunion: document.getElementById('fecha').value,
+        hora_inicio: document.getElementById('hora').value,
+        tema: document.getElementById('tema').value,
+        direccion: document.getElementById('direccion').value,
+        es_nueva_celula: document.getElementById('es_nueva_celula').checked,
+        ofrenda: parseFloat(document.getElementById('ofrenda').value) || 0,
+        observaciones: document.getElementById('observaciones').value,
+        asistentes: asistentes.map(a => ({ nombre: a.nombre, tipo: a.tipo, dni: a.dni, telefono: a.telefono, como_llego: a.como_llego }))
+      }
+      try {
+        const r = await fetch('/api/celulas/reporte', {
+          method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+        })
+        const data = await r.json()
+        if (data.ok) {
+          currentStep = 5
+          for (let i = 1; i <= 5; i++) {
+            const s = document.getElementById('step' + i)
+            if (s) s.style.display = 'none'
+          }
+          document.getElementById('step5').style.display = 'block'
+          renderSteps()
+        } else {
+          errEl.textContent = data.error || 'Error al enviar el reporte'
+          errEl.style.display = 'block'
+          btn.disabled = false; btn.textContent = '✓ Enviar Reporte'
+        }
+      } catch {
+        errEl.textContent = 'Error de conexión. Inténtalo de nuevo.'
+        errEl.style.display = 'block'
+        btn.disabled = false; btn.textContent = '✓ Enviar Reporte'
+      }
+    }
+
+    renderSteps()
+  </script>
+</body>
+</html>

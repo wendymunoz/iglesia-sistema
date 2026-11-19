@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Checklist — {{ culto.tipo|title }} {{ culto.fecha }}{% endblock %}
+{% block content %}
+<div style="padding:28px 32px;max-width:1100px">
+
+  <div style="margin-bottom:6px">
+    <a href="/ofrendas" style="color:#C9A227;text-decoration:none;font-size:12px">← Cultos</a>
+  </div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 class="page-title">📋 Checklist Operativo</h1>
+      <p class="page-subtitle">{{ culto.tipo|title }} · {{ culto.fecha.strftime("%A %d de %B %Y") if culto.fecha else "" }}</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <a href="/cultos/{{ culto.id }}/asistencia" class="btn-outline" style="text-decoration:none;font-size:13px">📊 Asistencia</a>
+      <a href="/ofrendas/{{ culto.id }}" class="btn-outline" style="text-decoration:none;font-size:13px">💰 Ofrendas</a>
+    </div>
+  </div>
+
+  {% if request.query_params.get("ok") %}
+  <div class="alert-gold" style="margin-bottom:16px"><span>✅</span><span style="font-size:13px;color:#7A5F0A">{{ request.query_params.get("ok") }}</span></div>
+  {% endif %}
+
+  <!-- Resumen global -->
+  {% set total_items = culto.asignaciones|sum(attribute='items')|list|length %}
+  {% set total_done = 0 %}
+  {% for a in culto.asignaciones %}{% set total_done = total_done + (a.items|selectattr("completado","equalto",true)|list|length) %}{% endfor %}
+  {% set pct = ((total_done / total_items * 100)|int) if total_items > 0 else 0 %}
+  <div class="card" style="padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px">
+    <div style="flex:1">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:700;color:#8B7A5A;text-transform:uppercase;letter-spacing:0.5px">Avance General</span>
+        <span style="font-size:14px;font-weight:800;color:#C9A227" id="pct-global">{{ pct }}%</span>
+      </div>
+      <div style="background:#F0EBE0;border-radius:99px;height:10px">
+        <div id="bar-global" style="background:linear-gradient(90deg,#C9A227,#F5D97F);height:10px;border-radius:99px;transition:width 0.4s;width:{{ pct }}%"></div>
+      </div>
+    </div>
+    <div style="text-align:center;min-width:60px">
+      <div style="font-size:22px;font-weight:800;color:#1A160E" id="cnt-global">{{ total_done }}/{{ total_items }}</div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#8B7A5A">tareas</div>
+    </div>
+    <div style="text-align:center;min-width:60px">
+      {% set completadas = culto.asignaciones|selectattr("estado","equalto","completado")|list|length %}
+      <div style="font-size:22px;font-weight:800;color:#16A34A">{{ completadas }}/{{ culto.asignaciones|length }}</div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#8B7A5A">áreas OK</div>
+    </div>
+  </div>
+
+  <!-- Áreas -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+    {% for asig in culto.asignaciones|sort(attribute='area.orden') %}
+    {% set n_done = asig.items|selectattr("completado","equalto",true)|list|length %}
+    {% set n_total = asig.items|length %}
+    {% set area_pct = ((n_done / n_total * 100)|int) if n_total > 0 else 0 %}
+    <div class="card" style="overflow:hidden;border-top:3px solid {% if asig.estado == 'completado' %}#16A34A{% elif asig.estado == 'en_proceso' %}#C9A227{% else %}#E5E0D5{% endif %}" id="card-asig-{{ asig.id }}">
+      <!-- Header área -->
+      <div style="padding:14px 16px;border-bottom:1px solid #F0EBE0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">{{ asig.area.icono }}</span>
+            <span style="font-size:14px;font-weight:700;color:#1A160E">{{ asig.area.nombre }}</span>
+          </div>
+          <span class="badge {% if asig.estado == 'completado' %}badge-green{% elif asig.estado == 'en_proceso' %}badge-gold{% else %}badge-gray{% endif %}" id="estado-asig-{{ asig.id }}" style="font-size:10px">
+            {{ asig.estado.replace("_"," ").title() }}
+          </span>
+        </div>
+        <!-- Barra de progreso -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;background:#F0EBE0;border-radius:99px;height:5px">
+            <div id="bar-asig-{{ asig.id }}" style="background:#C9A227;height:5px;border-radius:99px;width:{{ area_pct }}%;transition:width 0.3s"></div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:#8B7A5A;min-width:30px;text-align:right" id="cnt-asig-{{ asig.id }}">{{ n_done }}/{{ n_total }}</span>
+        </div>
+      </div>
+
+      <!-- Responsable -->
+      <div style="padding:10px 16px;background:#FAFAF8;border-bottom:1px solid #F0EBE0">
+        <form method="post" action="/cultos/{{ culto.id }}/checklist/asignar" style="display:flex;gap:8px;align-items:center">
+          <input type="hidden" name="asignacion_id" value="{{ asig.id }}"/>
+          <select name="responsable_id" class="input-field" style="font-size:12px;padding:6px 10px;flex:1" onchange="this.form.submit()">
+            <option value="">— Sin asignar —</option>
+            {% for p in personas %}
+            <option value="{{ p.id }}" {% if asig.responsable_id == p.id %}selected{% endif %}>{{ p.nombre_completo }}</option>
+            {% endfor %}
+          </select>
+          {% if asig.responsable %}<span style="font-size:10px;color:#16A34A;font-weight:600;white-space:nowrap">✓ {{ asig.responsable.nombre.split()[0] }}</span>{% endif %}
+        </form>
+      </div>
+
+      <!-- Items checklist -->
+      <div style="padding:8px 0">
+        {% for item in asig.items %}
+        <div class="checklist-item" id="item-row-{{ item.id }}" style="display:flex;align-items:flex-start;gap:10px;padding:8px 16px;cursor:pointer;transition:background 0.1s;{% if item.completado %}background:#F0FDF4;{% endif %}" onclick="toggleItem({{ item.id }}, this)">
+          <div id="chk-{{ item.id }}" style="width:18px;height:18px;border-radius:5px;border:2px solid {% if item.completado %}#16A34A{% else %}#D5CFC3{% endif %};background:{% if item.completado %}#16A34A{% else %}#fff{% endif %};flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all 0.15s">
+            {% if item.completado %}<span style="color:#fff;font-size:11px;font-weight:800">✓</span>{% endif %}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:{% if item.completado %}#6B7280{% else %}#1A160E{% endif %};{% if item.completado %}text-decoration:line-through;{% endif %}" id="desc-{{ item.id }}">{{ item.descripcion }}</div>
+            {% if item.completado and item.completado_por %}
+            <div style="font-size:10px;color:#8B7A5A;margin-top:1px">{{ item.completado_por.nombre.split()[0] }} · {{ item.completado_at.strftime("%H:%M") if item.completado_at else "" }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Notas del área -->
+      {% if asig.notas %}
+      <div style="padding:8px 16px 12px;border-top:1px solid #F0EBE0">
+        <div style="font-size:11px;color:#8B7A5A;font-style:italic">{{ asig.notas }}</div>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<script>
+  let totalItems = {{ total_items }};
+  let totalDone = {{ total_done }};
+
+  async function toggleItem(itemId, row) {
+    try {
+      const res = await fetch('/api/checklist/item/' + itemId + '/toggle', { method: 'POST' })
+      const data = await res.json()
+      if (!data.ok) return
+
+      const chk = document.getElementById('chk-' + itemId)
+      const desc = document.getElementById('desc-' + itemId)
+      const asigId = row.closest('[id^="card-asig-"]').id.replace('card-asig-', '')
+
+      if (data.completado) {
+        chk.style.background = '#16A34A'
+        chk.style.borderColor = '#16A34A'
+        chk.innerHTML = '<span style="color:#fff;font-size:11px;font-weight:800">✓</span>'
+        desc.style.color = '#6B7280'
+        desc.style.textDecoration = 'line-through'
+        row.style.background = '#F0FDF4'
+        totalDone++
+      } else {
+        chk.style.background = '#fff'
+        chk.style.borderColor = '#D5CFC3'
+        chk.innerHTML = ''
+        desc.style.color = '#1A160E'
+        desc.style.textDecoration = 'none'
+        row.style.background = ''
+        totalDone--
+      }
+
+      // Actualizar contador y barra del área
+      const cntAsig = document.getElementById('cnt-asig-' + asigId)
+      const barAsig = document.getElementById('bar-asig-' + asigId)
+      const estadoAsig = document.getElementById('estado-asig-' + asigId)
+      const cardAsig = document.getElementById('card-asig-' + asigId)
+      if (cntAsig) cntAsig.textContent = data.done + '/' + data.total
+      if (barAsig) barAsig.style.width = (data.total > 0 ? Math.round(data.done / data.total * 100) : 0) + '%'
+      if (estadoAsig) {
+        const labels = { pendiente: 'Pendiente', en_proceso: 'En Proceso', completado: 'Completado' }
+        const cls = { pendiente: 'badge-gray', en_proceso: 'badge-gold', completado: 'badge-green' }
+        estadoAsig.className = 'badge ' + (cls[data.asignacion_estado] || 'badge-gray')
+        estadoAsig.style.fontSize = '10px'
+        estadoAsig.textContent = labels[data.asignacion_estado] || data.asignacion_estado
+      }
+      if (cardAsig) {
+        const colors = { pendiente: '#E5E0D5', en_proceso: '#C9A227', completado: '#16A34A' }
+        cardAsig.style.borderTopColor = colors[data.asignacion_estado] || '#E5E0D5'
+      }
+
+      // Actualizar global
+      const pct = totalItems > 0 ? Math.round(totalDone / totalItems * 100) : 0
+      const cntGlobal = document.getElementById('cnt-global')
+      const barGlobal = document.getElementById('bar-global')
+      const pctGlobal = document.getElementById('pct-global')
+      if (cntGlobal) cntGlobal.textContent = totalDone + '/' + totalItems
+      if (barGlobal) barGlobal.style.width = pct + '%'
+      if (pctGlobal) pctGlobal.textContent = pct + '%'
+    } catch (e) { console.error(e) }
+  }
+</script>
+{% endblock %}

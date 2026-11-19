@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cambiar PIN</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin:0; font-family:system-ui,sans-serif; min-height:100vh;
+      background:#F7F5F0; display:flex; align-items:center; justify-content:center; }
+    .card { background:#fff; border-radius:20px; padding:40px; width:380px; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+    .logo-strip { background:linear-gradient(135deg,#C9A227,#8B6914); height:6px; border-radius:6px 6px 0 0; margin:-40px -40px 32px; }
+    h1 { font-size:20px; font-weight:800; color:#1A160E; margin:0 0 4px; }
+    .subtitle { font-size:13px; color:#8B7A5A; margin-bottom:28px; }
+    .field-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#8B7A5A; display:block; margin-bottom:5px; }
+    .input-field { width:100%; border:1.5px solid #E5E0D5; border-radius:10px; padding:11px 14px; font-size:14px; color:#1A160E; background:#FAFAF8; outline:none; box-sizing:border-box; transition:all 0.15s; }
+    .input-field:focus { border-color:#C9A227; box-shadow:0 0 0 3px rgba(201,162,39,0.12); background:#fff; }
+    .btn { width:100%; background:linear-gradient(135deg,#D4A820,#A07818); color:#fff; font-weight:700; border:none; border-radius:12px; padding:13px; font-size:15px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(201,162,39,0.3); margin-top:20px; }
+    .btn:hover { box-shadow:0 6px 20px rgba(201,162,39,0.45); transform:translateY(-1px); }
+    .field-group { margin-bottom:16px; }
+    .error-box { background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:10px 14px; color:#991B1B; font-size:13px; margin-bottom:16px; }
+    .success-box { background:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px; padding:10px 14px; color:#065F46; font-size:13px; margin-bottom:16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-strip"></div>
+    <div style="font-size:32px;margin-bottom:12px">🔑</div>
+    <h1>Cambiar PIN</h1>
+    <p class="subtitle">
+      {% if session_user and session_user.debe_cambiar_pin %}
+      Por seguridad, debes establecer un PIN personal antes de continuar.
+      {% else %}
+      Actualiza tu PIN de acceso personal.
+      {% endif %}
+    </p>
+
+    {% if error %}<div class="error-box">⚠️ {{ error }}</div>{% endif %}
+    {% if ok %}<div class="success-box">✅ {{ ok }}</div>{% endif %}
+
+    <form method="post" action="/cambiar-pin">
+      {% if session_user and session_user.debe_cambiar_pin %}
+      <div style="background:#FFFBF0;border:1px solid #E8D5A0;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#7A5F0A">
+        Tu PIN inicial son los primeros 4 dígitos de tu DNI.
+      </div>
+      {% else %}
+      <div class="field-group">
+        <label class="field-label">PIN Actual</label>
+        <input class="input-field" type="password" name="pin_actual" placeholder="PIN actual" required/>
+      </div>
+      {% endif %}
+      <div class="field-group">
+        <label class="field-label">Nuevo PIN</label>
+        <input class="input-field" type="password" name="nuevo_pin" placeholder="Mínimo 4 dígitos" minlength="4" required/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Confirmar PIN</label>
+        <input class="input-field" type="password" name="confirmar_pin" placeholder="Repite el nuevo PIN" minlength="4" required/>
+      </div>
+      <button type="submit" class="btn">Guardar PIN</button>
+    </form>
+
+    {% if session_user and not session_user.debe_cambiar_pin %}
+    <div style="text-align:center;margin-top:16px">
+      <a href="/dashboard" style="font-size:13px;color:#C9A227;font-weight:600">← Volver al dashboard</a>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

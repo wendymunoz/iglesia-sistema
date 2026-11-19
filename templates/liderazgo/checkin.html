@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Check-In — {{ reunion.descripcion }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:system-ui,sans-serif; min-height:100vh; background:#F7F5F0; }
+    .header { background:linear-gradient(135deg,#1A160E,#2F2210); padding:24px 32px; }
+    .header-title { color:#fff; font-size:22px; font-weight:800; margin:0; }
+    .header-sub { color:rgba(255,255,255,0.6); font-size:13px; margin-top:4px; }
+    .gold-bar { height:4px; background:linear-gradient(90deg,#C9A227,#F5D97F,#C9A227); }
+    .main { padding:32px; max-width:600px; margin:0 auto; }
+    .dni-card { background:#fff; border-radius:20px; padding:32px; box-shadow:0 4px 20px rgba(0,0,0,0.08); margin-bottom:24px; }
+    .field-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#8B7A5A; display:block; margin-bottom:8px; }
+    .dni-input { width:100%; border:2px solid #E5E0D5; border-radius:12px; padding:16px 20px; font-size:28px; font-weight:700; color:#1A160E; text-align:center; outline:none; letter-spacing:4px; transition:all 0.15s; background:#FAFAF8; }
+    .dni-input:focus { border-color:#C9A227; box-shadow:0 0 0 4px rgba(201,162,39,0.12); background:#fff; }
+    .btn-checkin { width:100%; background:linear-gradient(135deg,#D4A820,#A07818); color:#fff; font-weight:800; border:none; border-radius:14px; padding:18px; font-size:18px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 14px rgba(201,162,39,0.3); margin-top:16px; }
+    .btn-checkin:hover { box-shadow:0 6px 24px rgba(201,162,39,0.5); transform:translateY(-1px); }
+    .msg { border-radius:14px; padding:16px 20px; margin-bottom:16px; font-size:15px; font-weight:600; display:flex; align-items:center; gap:12px; }
+    .msg-success { background:#ECFDF5; border:1.5px solid #A7F3D0; color:#065F46; }
+    .msg-duplicate { background:#FFFBF0; border:1.5px solid #E8D5A0; color:#7A5F0A; }
+    .msg-error { background:#FEF2F2; border:1.5px solid #FECACA; color:#991B1B; }
+    .attendee-card { background:#fff; border-radius:14px; padding:20px; box-shadow:0 1px 6px rgba(0,0,0,0.06); }
+    .attendee-item { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F0EBE0; }
+    .attendee-item:last-child { border-bottom:none; }
+    .count-badge { background:linear-gradient(135deg,#C9A227,#8B6914); color:#fff; font-weight:800; border-radius:10px; padding:4px 12px; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px">
+      <a href="/liderazgo/reuniones" style="color:rgba(255,255,255,0.5);text-decoration:none">← Reuniones</a>
+    </div>
+    <h1 class="header-title">📋 {{ reunion.descripcion }}</h1>
+    <p class="header-sub">{{ reunion.fecha.strftime("%A, %d de %B %Y") if reunion.fecha else "" }}</p>
+  </div>
+  <div class="gold-bar"></div>
+
+  <div class="main">
+    <!-- DNI input -->
+    <div class="dni-card">
+      <label class="field-label">Ingresa tu DNI para registrar asistencia</label>
+      <input type="text" id="dni-input" class="dni-input" placeholder="_ _ _ _ _ _ _ _" maxlength="12" inputmode="numeric"/>
+      <button class="btn-checkin" onclick="registrar()">✓ Registrar Asistencia</button>
+    </div>
+
+    <!-- Feedback message -->
+    <div id="msg" style="display:none"></div>
+
+    <!-- Quick create form (shown when DNI not found) -->
+    <div id="crear-form" style="display:none;background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);margin-bottom:16px;border:2px solid #C9A227">
+      <div style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px">📋 DNI no encontrado — Registrar nuevo líder</div>
+      <div style="font-size:12px;color:#8B7A5A;margin-bottom:12px">Ingresa el nombre para registrarlo y puedes completar sus datos después desde Personas.</div>
+      <input type="text" id="crear-dni-display" class="dni-input" style="font-size:16px;letter-spacing:1px;margin-bottom:12px;color:#8B7A5A;cursor:not-allowed" readonly/>
+      <div id="crear-reniec" style="font-size:12px;margin-bottom:6px;min-height:14px;color:#8B7A5A"></div>
+      <input type="text" id="crear-nombre" placeholder="Nombre completo del líder" style="width:100%;border:1.5px solid #E5E0D5;border-radius:12px;padding:14px 16px;font-size:16px;outline:none;box-sizing:border-box;margin-bottom:12px;transition:all 0.15s" onfocus="this.style.borderColor='#C9A227'" onblur="this.style.borderColor='#E5E0D5'"/>
+      <div style="display:flex;gap:10px">
+        <button class="btn-checkin" style="flex:1;font-size:16px;padding:14px" onclick="crearYRegistrar()">✓ Crear y Registrar Asistencia</button>
+        <button style="background:#F7F5F0;border:1.5px solid #E5E0D5;border-radius:12px;padding:14px 18px;font-size:14px;cursor:pointer;font-weight:600;color:#8B7A5A" onclick="cancelarCrear()">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Attendees list -->
+    <div class="attendee-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-size:14px;font-weight:700;color:#1A160E;margin:0">Líderes Presentes</h3>
+        <span class="count-badge" id="count">{{ reunion.asistencias|length }}</span>
+      </div>
+      <div id="lista">
+        {% for a in reunion.asistencias|sort(attribute='hora') %}
+        <div class="attendee-item" id="ai-{{ a.persona_id }}">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1A160E">{{ a.persona.nombre_completo }}</div>
+            <div style="font-size:11px;color:#8B7A5A">{{ a.hora.strftime("%H:%M") if a.hora else "" }}</div>
+          </div>
+          <span style="font-size:18px">✅</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% if not reunion.asistencias %}
+      <div id="empty-msg" style="text-align:center;padding:32px;color:#B8A888;font-size:14px">
+        Esperando el primer registro...
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById('dni-input')
+    const msgEl = document.getElementById('msg')
+    const lista = document.getElementById('lista')
+    const countEl = document.getElementById('count')
+    let count = {{ reunion.asistencias|length }}
+
+    input.focus()
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') registrar() })
+
+    async function registrar() {
+      const dni = input.value.trim()
+      if (!dni) return
+      try {
+        const res = await fetch('/liderazgo/checkin/{{ reunion.id }}', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({dni})
+        })
+        const data = await res.json()
+        if (!data.ok && !data.ya_registrado) {
+          // DNI not found — offer quick create
+          mostrarCrearForm(dni)
+          input.value = ''
+          return
+        }
+        mostrarMsg(data)
+        if (data.ok && !data.ya_registrado) {
+          agregarAsistente(data)
+          count++
+          countEl.textContent = count
+        }
+      } catch {
+        mostrarMsg({ok: false})
+      }
+      input.value = ''
+      input.focus()
+    }
+
+    let dniPendiente = ''
+
+    function mostrarMsg(data) {
+      let cls, icon, text
+      if (data.ok && !data.ya_registrado) {
+        cls = 'msg-success'; icon = '✅'
+        text = `${data.nombre} — registrado a las ${data.hora}`
+      } else if (data.ya_registrado) {
+        cls = 'msg-duplicate'; icon = '⚠️'
+        text = `${data.nombre} ya fue registrado`
+      } else {
+        cls = 'msg-error'; icon = '❌'
+        text = data.error || 'DNI no encontrado en el sistema'
+      }
+      msgEl.className = `msg ${cls}`
+      msgEl.innerHTML = `<span style="font-size:22px">${icon}</span><span>${text}</span>`
+      msgEl.style.display = 'flex'
+      setTimeout(() => { msgEl.style.display = 'none' }, 4000)
+    }
+
+    async function mostrarCrearForm(dni) {
+      dniPendiente = dni
+      document.getElementById('crear-dni-display').value = dni
+      document.getElementById('crear-nombre').value = ''
+      document.getElementById('crear-reniec').textContent = 'Consultando RENIEC…'
+      document.getElementById('crear-form').style.display = 'block'
+      window.scrollTo(0, 0)
+      // Auto-fill nombre desde RENIEC
+      try {
+        const r = await fetch('/api/reniec/' + dni)
+        const data = await r.json()
+        if (data.ok) {
+          document.getElementById('crear-nombre').value = data.nombre_completo
+          document.getElementById('crear-reniec').innerHTML = '✓ <strong>' + data.nombre_completo + '</strong> (RENIEC)'
+          document.getElementById('crear-reniec').style.color = '#16A34A'
+        } else {
+          document.getElementById('crear-reniec').textContent = 'No encontrado en RENIEC — ingresa el nombre manualmente'
+          document.getElementById('crear-reniec').style.color = '#8B7A5A'
+          document.getElementById('crear-nombre').focus()
+        }
+      } catch {
+        document.getElementById('crear-reniec').textContent = 'Error al consultar RENIEC'
+        document.getElementById('crear-nombre').focus()
+      }
+    }
+
+    function cancelarCrear() {
+      dniPendiente = ''
+      document.getElementById('crear-form').style.display = 'none'
+      input.focus()
+    }
+
+    async function crearYRegistrar() {
+      const nombre = document.getElementById('crear-nombre').value.trim()
+      if (!nombre) {
+        document.getElementById('crear-nombre').style.borderColor = '#DC2626'
+        return
+      }
+      try {
+        // 1. Create persona
+        const crearRes = await fetch('/api/personas/rapido', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({dni: dniPendiente, nombre})
+        })
+        const crearData = await crearRes.json()
+        if (!crearData.ok) {
+          mostrarMsg({ok: false, error: crearData.error || 'Error al crear persona'})
+          return
+        }
+        // 2. Register attendance
+        const res = await fetch('/liderazgo/checkin/{{ reunion.id }}', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({dni: dniPendiente})
+        })
+        const data = await res.json()
+        document.getElementById('crear-form').style.display = 'none'
+        mostrarMsg(data)
+        if (data.ok && !data.ya_registrado) {
+          agregarAsistente(data)
+          count++; countEl.textContent = count
+        }
+      } catch {
+        mostrarMsg({ok: false, error: 'Error de conexión'})
+      }
+      input.value = ''; input.focus()
+    }
+
+    function agregarAsistente(data) {
+      const empty = document.getElementById('empty-msg')
+      if (empty) empty.remove()
+      const div = document.createElement('div')
+      div.className = 'attendee-item'
+      div.innerHTML = `
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#1A160E">${data.nombre}</div>
+          <div style="font-size:11px;color:#8B7A5A">${data.hora}</div>
+        </div>
+        <span style="font-size:18px">✅</span>`
+      lista.insertBefore(div, lista.firstChild)
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Personas{% endblock %}
+{% block content %}
+<div style="padding:32px">
+
+  <div class="page-header">
+    <div>
+      <div class="page-breadcrumb">Administración</div>
+      <h1 class="page-title">Personas</h1>
+    </div>
+    <a href="/personas/nueva" class="btn-gold" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+      + Nueva Persona
+    </a>
+  </div>
+
+  <!-- Search -->
+  <div class="card" style="padding:16px;margin-bottom:20px">
+    <form method="get" action="/personas" style="display:flex;gap:10px;align-items:center">
+      <div style="flex:1;position:relative">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#B8A888">🔍</span>
+        <input type="text" name="q" value="{{ q or '' }}" placeholder="Buscar por nombre, apellido o DNI..."
+          class="input-field" style="padding-left:36px"/>
+      </div>
+      <select name="rol" class="input-field" style="width:auto;min-width:140px">
+        <option value="">Todos los roles</option>
+        {% for k, v in ROLES.items() %}
+        <option value="{{ k }}" {% if rol_filtro == k %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-gold">Buscar</button>
+      {% if q or rol_filtro %}
+      <a href="/personas" class="btn-outline" style="text-decoration:none">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Table -->
+  <div class="card">
+    {% if personas %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>DNI</th>
+          <th>Nombre</th>
+          <th>Roles</th>
+          <th>Etapa</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in personas %}
+        <tr>
+          <td style="font-family:monospace;font-size:13px;color:#5A4E38;font-weight:600">{{ p.dni }}</td>
+          <td>
+            <div style="font-weight:600;color:#1A160E">{{ p.nombre_completo }}</div>
+            {% if p.telefono %}<div style="font-size:11px;color:#8B7A5A">{{ p.telefono }}</div>{% endif %}
+          </td>
+          <td>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              {% for r in p.roles %}
+              {% if r.activo %}
+              <span class="badge badge-gold">{{ ROLES.get(r.rol, r.rol) }}</span>
+              {% endif %}
+              {% endfor %}
+              {% if not p.roles %}
+              <span class="badge badge-gray">Sin rol</span>
+              {% endif %}
+            </div>
+          </td>
+          <td>
+            {% if p.proceso_espiritual %}
+            <span class="badge badge-blue">{{ p.proceso_espiritual.etapa }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.activo %}
+            <span class="badge badge-green">Activo</span>
+            {% else %}
+            <span class="badge badge-red">Inactivo</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right">
+            <a href="/personas/{{ p.id }}" style="color:#C9A227;font-size:13px;font-weight:600;text-decoration:none">Ver →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:60px 20px;color:#B8A888">
+      <div style="font-size:40px;margin-bottom:12px">👥</div>
+      <div style="font-weight:600;color:#8B7A5A">No se encontraron personas</div>
+      <div style="font-size:13px;margin-top:4px">Prueba con otra búsqueda o <a href="/personas/nueva" style="color:#C9A227;font-weight:600">agrega una nueva</a></div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if personas %}
+  <div style="text-align:right;margin-top:12px;font-size:12px;color:#8B7A5A">
+    {{ personas|length }} persona(s) encontrada(s)
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
