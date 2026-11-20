@@ -79,6 +79,30 @@ async def ensure_db(request, call_next):
     return await call_next(request)
 
 
+@app.get("/setup-inicial")
+async def setup_inicial(request: Request, db: Session = Depends(get_db)):
+    """Endpoint temporal para crear el primer admin. Solo funciona si no hay admins."""
+    from database import PersonaRol, ProcesoEspiritual
+    ya_hay_admin = db.query(PersonaRol).filter(PersonaRol.rol == "admin").first()
+    if ya_hay_admin:
+        return JSONResponse({"error": "Ya existe un administrador. Endpoint deshabilitado."}, status_code=403)
+    # Crear admin por defecto
+    dni = "00000001"
+    p = Persona(dni=dni, nombre="Administrador", apellido="Sistema")
+    db.add(p); db.flush()
+    db.add(PersonaRol(persona_id=p.id, rol="admin"))
+    db.add(ProcesoEspiritual(persona_id=p.id, etapa="visitante"))
+    pin = "0000"
+    db.add(Usuario(persona_id=p.id, pin_hash=hashear_pin(pin), debe_cambiar_pin=True))
+    db.commit()
+    return JSONResponse({
+        "ok": True,
+        "mensaje": "Admin creado. Entra con DNI: 00000001 y PIN: 0000. Cambia el PIN inmediatamente.",
+        "dni": dni,
+        "pin": pin,
+    })
+
+
 @app.get("/admin/sync-db")
 async def admin_sync_db(request: Request):
     u, redir = require_admin(request)
