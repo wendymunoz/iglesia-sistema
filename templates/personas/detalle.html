@@ -90,6 +90,32 @@
     </form>
   </div>
 
+  <!-- Célula / Líder -->
+  {% if celulas %}
+  <div class="card" style="padding:24px;margin-bottom:16px">
+    <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">Célula</h3>
+    <form method="post" action="/personas/{{ p.id }}/celula" style="display:flex;gap:10px;align-items:flex-end">
+      <div style="flex:1">
+        <select name="celula_id" class="input-field">
+          <option value="">— Sin célula —</option>
+          {% for c in celulas %}
+          <option value="{{ c.id }}" {% if p.celula_id == c.id %}selected{% endif %}>
+            {{ c.emoji or '🏠' }} {{ c.nombre_casa }}{% if c.lider %} (Líder: {{ c.lider.nombre_completo }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-gold">Asignar</button>
+    </form>
+    {% if p.celula and p.celula.lider %}
+    <div style="margin-top:10px;font-size:12px;color:#8B7A5A">
+      Líder responsable: <strong style="color:#C9A227">{{ p.celula.lider.nombre_completo }}</strong>
+      <a href="/personas/{{ p.celula.lider.id }}" style="margin-left:8px;color:#C9A227;font-size:11px">Ver perfil →</a>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- Etapa -->
   <div class="card" style="padding:24px;margin-bottom:16px">
     <h3 style="font-size:13px;font-weight:700;color:#C9A227;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px">Etapa Espiritual</h3>

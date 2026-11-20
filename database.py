@@ -79,6 +79,7 @@ class Persona(Base):
     fecha_nacimiento = Column(Date, nullable=True)
     fecha_registro = Column(DateTime, default=datetime.utcnow)
     activo         = Column(Boolean, default=True)
+    celula_id      = Column(Integer, ForeignKey("celulas.id"), nullable=True)
 
     roles         = relationship("PersonaRol", back_populates="persona", cascade="all, delete-orphan")
     usuario       = relationship("Usuario", back_populates="persona", uselist=False, cascade="all, delete-orphan")
@@ -86,6 +87,7 @@ class Persona(Base):
     proceso       = relationship("ProcesoEspiritual", back_populates="persona", uselist=False, cascade="all, delete-orphan")
     liderazgo_g12 = relationship("LiderG12", back_populates="persona", foreign_keys="LiderG12.persona_id")
     celulas       = relationship("Celula", back_populates="lider", foreign_keys="Celula.lider_id")
+    celula        = relationship("Celula", foreign_keys=[celula_id])
 
     @property
     def nombre_completo(self):
@@ -549,6 +551,7 @@ def init_db():
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE salones ADD COLUMN IF NOT EXISTS turno VARCHAR(20) DEFAULT ''"))
             conn.execute(text("ALTER TABLE salones ADD COLUMN IF NOT EXISTS anio INTEGER DEFAULT 0"))
+            conn.execute(text("ALTER TABLE personas ADD COLUMN IF NOT EXISTS celula_id INTEGER REFERENCES celulas(id)"))
             conn.commit()
     except Exception:
         pass

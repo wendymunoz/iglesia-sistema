@@ -520,12 +520,14 @@ async def persona_detalle(request: Request, persona_id: int, db: Session = Depen
         .filter(InscripcionEncuentro.persona_id == p.id)
         .order_by(InscripcionEncuentro.fecha_inscripcion.desc()).all()
     )
+    celulas = db.query(Celula).filter(Celula.activa == True).order_by(Celula.nombre_casa).all()
     return templates.TemplateResponse(request, "personas/detalle.html", ctx(
         request, p=p, ETAPAS=ETAPAS, ETAPAS_DISPLAY=ETAPAS_DISPLAY,
         ROLES=ROLES, saldo_fn=saldo_matricula,
         asistencias=asistencias,
         reportes_lider=reportes_lider,
         inscripciones_encuentro=inscripciones_encuentro,
+        celulas=celulas,
     ))
 
 
@@ -558,9 +560,10 @@ async def persona_editar(
         p.talla_polo = talla_polo.strip()
         db.commit()
         return RedirectResponse(url=f"/personas/{persona_id}", status_code=303)
+    celulas = db.query(Celula).filter(Celula.activa == True).order_by(Celula.nombre_casa).all()
     return templates.TemplateResponse(request, "personas/detalle.html", ctx(
         request, p=p, ETAPAS=ETAPAS, ETAPAS_DISPLAY=ETAPAS_DISPLAY,
-        ROLES=ROLES, saldo_fn=saldo_matricula, error=error,
+        ROLES=ROLES, saldo_fn=saldo_matricula, error=error, celulas=celulas,
     ))
 
 
@@ -592,6 +595,23 @@ async def persona_roles(
     if roles and not p.usuario:
         db.add(Usuario(persona_id=p.id, pin_hash=hashear_pin(pin_inicial(p.dni)), debe_cambiar_pin=True))
 
+    db.commit()
+    return RedirectResponse(url=f"/personas/{persona_id}", status_code=303)
+
+
+@app.post("/personas/{persona_id}/celula")
+async def persona_celula(
+    request: Request, persona_id: int,
+    celula_id: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    u, redir = require_admin(request)
+    if redir:
+        return redir
+    p = db.query(Persona).filter(Persona.id == persona_id).first()
+    if not p:
+        return RedirectResponse(url="/personas", status_code=303)
+    p.celula_id = int(celula_id) if celula_id else None
     db.commit()
     return RedirectResponse(url=f"/personas/{persona_id}", status_code=303)
 
