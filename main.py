@@ -347,6 +347,7 @@ async def persona_nueva_post(
     telefono: str = Form(""),
     email: str = Form(""),
     talla_polo: str = Form(""),
+    fecha_nacimiento: str = Form(""),
     roles: list[str] = Form([]),
     etapa: str = Form("visitante"),
     crear_usuario: str = Form("no"),
@@ -361,8 +362,16 @@ async def persona_nueva_post(
             request, persona=None, ETAPAS=ETAPAS, ETAPAS_DISPLAY=ETAPAS_DISPLAY,
             error=f"Ya existe una persona con DNI {dni}.",
         ))
+    from datetime import date as date_type
+    fn = None
+    if fecha_nacimiento:
+        try:
+            fn = date_type.fromisoformat(fecha_nacimiento)
+        except ValueError:
+            pass
     p = Persona(dni=dni, nombre=nombre.strip(), apellido=apellido.strip(),
-                telefono=telefono.strip(), email=email.strip(), talla_polo=talla_polo.strip())
+                telefono=telefono.strip(), email=email.strip(), talla_polo=talla_polo.strip(),
+                fecha_nacimiento=fn)
     db.add(p)
     db.flush()
 
