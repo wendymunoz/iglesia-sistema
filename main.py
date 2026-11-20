@@ -134,10 +134,8 @@ async def seed_data_endpoint(db: Session = Depends(get_db)):
         db.add(LiderG12(persona_id=personas[0].id, generacion=1, activo=True))
         db.add(LiderG12(persona_id=personas[1].id, generacion=1, activo=True))
         db.add(LiderG12(persona_id=personas[2].id, generacion=2, supervisor_id=personas[0].id, activo=True))
-        db.add(Celula(nombre="Célula Esperanza", lider_id=personas[0].id,
-                      direccion="Jr. Los Pinos 123", dia_reunion="Martes", hora_reunion="19:00", activa=True))
-        db.add(Celula(nombre="Célula Fe", lider_id=personas[1].id,
-                      direccion="Av. Los Olivos 456", dia_reunion="Jueves", hora_reunion="19:30", activa=True))
+        db.add(Celula(nombre_casa="Célula Esperanza", lider_id=personas[0].id, activa=True))
+        db.add(Celula(nombre_casa="Célula Fe",        lider_id=personas[1].id, activa=True))
         db.flush()
         salon1 = db.query(Salon).filter(Salon.nivel == 1).first()
         salon2 = db.query(Salon).filter(Salon.nivel == 2).first()
