@@ -1038,20 +1038,18 @@ async def reniec_consulta(dni: str):
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             r = await client.get(
-                f"https://apiperu.dev/api/dni/{dni}",
-                headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+                f"https://api.decolecta.com/v1/reniec/dni?numero={dni}",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
             )
         if r.status_code == 200:
-            resp = r.json()
-            if resp.get("success") and resp.get("data"):
-                data = resp["data"]
-                return JSONResponse({
-                    "ok": True,
-                    "nombre": data.get("nombres", ""),
-                    "apellido_paterno": data.get("apellido_paterno", ""),
-                    "apellido_materno": data.get("apellido_materno", ""),
-                    "nombre_completo": data.get("nombre_completo", ""),
-                })
+            data = r.json()
+            return JSONResponse({
+                "ok": True,
+                "nombre": data.get("first_name", ""),
+                "apellido_paterno": data.get("first_last_name", ""),
+                "apellido_materno": data.get("second_last_name", ""),
+                "nombre_completo": data.get("full_name", ""),
+            })
         return JSONResponse({"ok": False, "error": "DNI no encontrado en RENIEC"}, status_code=404)
     except Exception:
         return JSONResponse({"ok": False, "error": "Error al consultar RENIEC"}, status_code=502)
