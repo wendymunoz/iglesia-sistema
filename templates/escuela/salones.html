@@ -59,19 +59,19 @@
   {% if salones %}
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
     {% for s in salones %}
-    <a href="/escuela/salon/{{ s.id }}" style="text-decoration:none">
+    <a href="/escuela/salones/{{ s.id }}" style="text-decoration:none">
       <div class="card" style="padding:20px;transition:all 0.15s;cursor:pointer" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(201,162,39,0.15)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
           <div style="width:40px;height:40px;background:linear-gradient(135deg,#C9A227,#8B6914);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px">
             N{{ s.nivel or '?' }}
           </div>
-          <span class="badge badge-gold">{{ s.anio or '' }}</span>
+          <span class="badge badge-gold">{{ s.anio if s.anio else '' }}</span>
         </div>
         <div style="font-size:15px;font-weight:700;color:#1A160E;margin-bottom:4px">{{ s.nombre }}</div>
-        <div style="font-size:12px;color:#8B7A5A;margin-bottom:12px">{{ s.turno or '' }} · {{ s.matriculas|length }} estudiante(s)</div>
+        <div style="font-size:12px;color:#8B7A5A;margin-bottom:12px">{{ s.turno or '' }}{% if s.turno %} · {% endif %}{{ s.matriculas|length }} estudiante(s)</div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid #F0EBE0">
-          {% set activas = s.matriculas|selectattr("estado","equalto","activa")|list %}
-          <div style="font-size:12px;color:#8B7A5A">{{ activas|length }} activos</div>
+          {% set activos = s.matriculas|selectattr("estado","equalto","activo")|list %}
+          <div style="font-size:12px;color:#8B7A5A">{{ activos|length }} activos</div>
           <div style="font-size:12px;color:#C9A227;font-weight:600">Ver detalles →</div>
         </div>
       </div>

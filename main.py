@@ -98,28 +98,6 @@ async def ensure_db(request, call_next):
     return await call_next(request)
 
 
-@app.get("/setup-inicial")
-async def setup_inicial(request: Request, db: Session = Depends(get_db)):
-    """Endpoint temporal para crear el primer admin. Solo funciona si no hay admins."""
-    from database import PersonaRol, ProcesoEspiritual
-    ya_hay_admin = db.query(PersonaRol).filter(PersonaRol.rol == "admin").first()
-    if ya_hay_admin:
-        return JSONResponse({"error": "Ya existe un administrador. Endpoint deshabilitado."}, status_code=403)
-    # Crear admin por defecto
-    dni = "00000001"
-    p = Persona(dni=dni, nombre="Administrador", apellido="Sistema")
-    db.add(p); db.flush()
-    db.add(PersonaRol(persona_id=p.id, rol="admin"))
-    db.add(ProcesoEspiritual(persona_id=p.id, etapa="visitante"))
-    pin = "0000"
-    db.add(Usuario(persona_id=p.id, pin_hash=hashear_pin(pin), debe_cambiar_pin=True))
-    db.commit()
-    return JSONResponse({
-        "ok": True,
-        "mensaje": "Admin creado. Entra con DNI: 00000001 y PIN: 0000. Cambia el PIN inmediatamente.",
-        "dni": dni,
-        "pin": pin,
-    })
 
 
 @app.get("/seed-data")
@@ -394,37 +372,6 @@ async def personas_lista(request: Request, q: str = "", db: Session = Depends(ge
     ))
 
 
-@app.get("/personas/cumpleanos")
-async def cumpleanos_early(request: Request, mes: int = 0, db: Session = Depends(get_db)):
-    u = check_auth(request)
-    if not u:
-        return redirect_login()
-    hoy = date.today()
-    mes_actual = mes if 1 <= mes <= 12 else hoy.month
-    todos = db.query(Persona).filter(Persona.activo == True, Persona.fecha_nacimiento != None).all()
-    del_mes = []
-    for p in todos:
-        if p.fecha_nacimiento.month == mes_actual:
-            try:
-                cumple = p.fecha_nacimiento.replace(year=hoy.year)
-            except ValueError:
-                cumple = p.fecha_nacimiento.replace(year=hoy.year, day=28)
-            if cumple < hoy:
-                try:
-                    cumple = p.fecha_nacimiento.replace(year=hoy.year + 1)
-                except ValueError:
-                    cumple = p.fecha_nacimiento.replace(year=hoy.year + 1, day=28)
-            dias = (cumple - hoy).days
-            edad = hoy.year - p.fecha_nacimiento.year
-            del_mes.append({"persona": p, "dias": dias, "fecha": cumple, "edad": edad})
-    del_mes.sort(key=lambda x: x["fecha"].day)
-    MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
-             "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
-    return templates.TemplateResponse(request, "personas/cumpleanos.html", ctx(
-        request, del_mes=del_mes, mes_actual=mes_actual, MESES=MESES, hoy=hoy,
-    ))
-
-
 @app.get("/personas/nueva")
 async def persona_nueva_get(request: Request, db: Session = Depends(get_db)):
     u, redir = require_admin(request)
@@ -669,6 +616,7 @@ async def escuela(request: Request, db: Session = Depends(get_db)):
 async def salon_crear(
     request: Request,
     nivel: int = Form(...), nombre: str = Form(""),
+    turno: str = Form(""), anio: str = Form(""),
     maestro_id: str = Form(""), fecha_inicio: str = Form(""),
     db: Session = Depends(get_db),
 ):
@@ -677,6 +625,8 @@ async def salon_crear(
         return redir
     db.add(Salon(
         nivel=nivel, nombre=nombre.strip(),
+        turno=turno.strip(),
+        anio=int(anio) if anio.strip().isdigit() else 0,
         maestro_id=int(maestro_id) if maestro_id else None,
         fecha_inicio=fecha_inicio,
     ))
@@ -1318,7 +1268,7 @@ async def encuentro_completar(request: Request, ins_id: int, db: Session = Depen
     ins.estado = "completado"
     # Avanzar etapa espiritual
     if ins.persona and ins.persona.proceso:
-        ins.persona.proceso.etapa = "pos_encuentro"
+        ins.persona.proceso.etapa = "post_encuentro"
     # Agregar a cola de matrícula si no está ya pendiente
     ya_en_cola = db.query(PendienteMatricula).filter(
         PendienteMatricula.persona_id == ins.persona_id,

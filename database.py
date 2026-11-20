@@ -236,6 +236,8 @@ class Salon(Base):
     id          = Column(Integer, primary_key=True, index=True)
     nivel       = Column(Integer, nullable=False)
     nombre      = Column(String(100), default="")
+    turno       = Column(String(20), default="")
+    anio        = Column(Integer, default=0)
     maestro_id  = Column(Integer, ForeignKey("personas.id"), nullable=True)
     fecha_inicio = Column(String(20), default="")
     activo      = Column(Boolean, default=True)
@@ -541,6 +543,15 @@ AREAS_SEED = [
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Migraciones — agregar columnas nuevas si no existen
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE salones ADD COLUMN IF NOT EXISTS turno VARCHAR(20) DEFAULT ''"))
+            conn.execute(text("ALTER TABLE salones ADD COLUMN IF NOT EXISTS anio INTEGER DEFAULT 0"))
+            conn.commit()
+    except Exception:
+        pass
     # Sembrar áreas de servicio si no existen
     db = SessionLocal()
     try:

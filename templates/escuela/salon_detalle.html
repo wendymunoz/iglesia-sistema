@@ -11,7 +11,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">{{ salon.nombre }}</h1>
-      <div style="font-size:13px;color:#8B7A5A;margin-top:4px">Nivel {{ salon.nivel }} · {{ salon.turno }} · {{ salon.anio }}</div>
+      <div style="font-size:13px;color:#8B7A5A;margin-top:4px">Nivel {{ salon.nivel }}{% if salon.turno %} · {{ salon.turno }}{% endif %}{% if salon.anio %} · {{ salon.anio }}{% endif %}</div>
     </div>
     {% if "admin" in session_user.roles %}
     <button onclick="document.getElementById('form-matricular').style.display=document.getElementById('form-matricular').style.display==='none'?'block':'none'" class="btn-gold">

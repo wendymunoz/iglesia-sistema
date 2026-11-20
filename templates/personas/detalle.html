@@ -96,9 +96,9 @@
     <form method="post" action="/personas/{{ p.id }}/etapa" style="display:flex;gap:10px;align-items:flex-end">
       <div style="flex:1">
         <select name="etapa" class="input-field">
-          {% for e in ["visitante","pre_encuentro","encuentro","pos_encuentro","escuela"] %}
+          {% for e in ETAPAS %}
           <option value="{{ e }}" {% if p.proceso and p.proceso.etapa == e %}selected{% endif %}>
-            {{ e.replace("_"," ").title() }}
+            {{ ETAPAS_DISPLAY[e] }}
           </option>
           {% endfor %}
         </select>
