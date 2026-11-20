@@ -158,9 +158,10 @@ async def seed_data_endpoint(db: Session = Depends(get_db)):
         culto = Culto(tipo=tipo, fecha=hoy+timedelta(days=dias))
         db.add(culto); db.flush()
         db.add(Ofrenda(culto_id=culto.id, monto=monto, concepto="Ofrenda general", registrado_por_id=personas[0].id))
-    grupo = GrupoEncuentro(nombre="Encuentro Nov 2026", fecha_inicio=hoy+timedelta(days=10),
-                           fecha_fin=hoy+timedelta(days=12), lugar="Retiro Casa de Oración",
-                           encargado_id=personas[0].id, estado="programado")
+    grupo = GrupoEncuentro(nombre="Encuentro Nov 2026",
+                           fecha_apertura=hoy+timedelta(days=10),
+                           fecha_encuentro=hoy+timedelta(days=12),
+                           encargado_id=personas[0].id, estado="activo")
     db.add(grupo); db.flush()
     for p in personas[7:]:
         db.add(InscripcionEncuentro(grupo_id=grupo.id, persona_id=p.id, estado="inscrito"))

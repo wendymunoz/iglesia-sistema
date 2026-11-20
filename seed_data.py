@@ -116,11 +116,10 @@ def run():
         print("Creando grupo de encuentro...")
         grupo = GrupoEncuentro(
             nombre="Encuentro Nov 2026",
-            fecha_inicio=hoy + timedelta(days=10),
-            fecha_fin=hoy + timedelta(days=12),
-            lugar="Retiro Casa de Oración",
+            fecha_apertura=hoy + timedelta(days=10),
+            fecha_encuentro=hoy + timedelta(days=12),
             encargado_id=personas[0].id,
-            estado="programado",
+            estado="activo",
         )
         db.add(grupo); db.flush()
         for p in personas[7:]:
