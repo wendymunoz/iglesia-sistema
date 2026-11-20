@@ -1,4 +1,4 @@
-import os
+﻿import os
 import io
 import json
 import httpx
@@ -463,6 +463,37 @@ async def persona_nueva_post(
 
     db.commit()
     return RedirectResponse(url=f"/personas/{p.id}", status_code=303)
+
+
+@app.get("/personas/cumpleanos")
+async def cumpleanos_view(request: Request, mes: int = 0, db: Session = Depends(get_db)):
+    u = check_auth(request)
+    if not u:
+        return redirect_login()
+    hoy = date.today()
+    mes_actual = mes if 1 <= mes <= 12 else hoy.month
+    todos = db.query(Persona).filter(Persona.activo == True, Persona.fecha_nacimiento != None).all()
+    del_mes = []
+    for p in todos:
+        if p.fecha_nacimiento.month == mes_actual:
+            try:
+                cumple = p.fecha_nacimiento.replace(year=hoy.year)
+            except ValueError:
+                cumple = p.fecha_nacimiento.replace(year=hoy.year, day=28)
+            if cumple < hoy:
+                try:
+                    cumple = p.fecha_nacimiento.replace(year=hoy.year + 1)
+                except ValueError:
+                    cumple = p.fecha_nacimiento.replace(year=hoy.year + 1, day=28)
+            dias = (cumple - hoy).days
+            edad = hoy.year - p.fecha_nacimiento.year
+            del_mes.append({"persona": p, "dias": dias, "fecha": cumple, "edad": edad})
+    del_mes.sort(key=lambda x: x["fecha"].day)
+    MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+             "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+    return templates.TemplateResponse(request, "personas/cumpleanos.html", ctx(
+        request, del_mes=del_mes, mes_actual=mes_actual, MESES=MESES, hoy=hoy,
+    ))
 
 
 @app.get("/personas/{persona_id}")
@@ -1371,40 +1402,6 @@ async def culto_asistencia_post(request: Request, culto_id: int, db: Session = D
     total = db.query(AsistenciaCulto).filter(AsistenciaCulto.culto_id == culto_id).count()
     return JSONResponse({"ok": True, "ya_registrado": False, "nombre": persona.nombre_completo, "total": total})
 
-
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-# CUMPLEANOS
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
-@app.get("/personas/cumpleanos")
-async def cumpleanos(request: Request, mes: int = 0, db: Session = Depends(get_db)):
-    u = check_auth(request)
-    if not u:
-        return redirect_login()
-    hoy = date.today()
-    mes_actual = mes if 1 <= mes <= 12 else hoy.month
-    todos = db.query(Persona).filter(Persona.activo == True, Persona.fecha_nacimiento != None).all()
-    del_mes = []
-    for p in todos:
-        if p.fecha_nacimiento.month == mes_actual:
-            try:
-                cumple = p.fecha_nacimiento.replace(year=hoy.year)
-            except ValueError:
-                cumple = p.fecha_nacimiento.replace(year=hoy.year, day=28)
-            if cumple < hoy:
-                try:
-                    cumple = p.fecha_nacimiento.replace(year=hoy.year + 1)
-                except ValueError:
-                    cumple = p.fecha_nacimiento.replace(year=hoy.year + 1, day=28)
-            dias = (cumple - hoy).days
-            edad = hoy.year - p.fecha_nacimiento.year
-            del_mes.append({"persona": p, "dias": dias, "fecha": cumple, "edad": edad})
-    del_mes.sort(key=lambda x: x["fecha"].day)
-    MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
-             "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
-    return templates.TemplateResponse(request, "personas/cumpleanos.html", ctx(
-        request, del_mes=del_mes, mes_actual=mes_actual, MESES=MESES, hoy=hoy,
-    ))
 
 
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•

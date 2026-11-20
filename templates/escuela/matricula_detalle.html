@@ -41,8 +41,8 @@
     </div>
     <div class="card" style="padding:18px;text-align:center">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-bottom:6px">Saldo</div>
-      <div style="font-size:24px;font-weight:800;color:{% if saldo > 0 %}#DC2626{% else %}#16A34A{% endif %}">
-        S/. {{ "%.0f"|format(saldo) }}
+      <div style="font-size:24px;font-weight:800;color:{% if saldo.pendiente > 0 %}#DC2626{% else %}#16A34A{% endif %}">
+        S/. {{ "%.0f"|format(saldo.pendiente) }}
       </div>
     </div>
   </div>

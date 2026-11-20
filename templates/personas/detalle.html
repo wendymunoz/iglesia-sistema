@@ -142,8 +142,8 @@
       <div>
         {% if saldo_fn %}
         {% set saldo = saldo_fn(m) %}
-        {% if saldo > 0 %}
-        <span class="badge badge-red">Debe S/. {{ "%.0f"|format(saldo) }}</span>
+        {% if saldo.pendiente > 0 %}
+        <span class="badge badge-red">Debe S/. {{ "%.0f"|format(saldo.pendiente) }}</span>
         {% else %}
         <span class="badge badge-green">Al día ✓</span>
         {% endif %}
