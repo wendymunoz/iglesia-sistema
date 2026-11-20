@@ -123,7 +123,7 @@ async def setup_inicial(request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/admin/sync-db")
-async def admin_sync_db(request: Request):
+async def admin_sync_db(request: Request, db: Session = Depends(get_db)):
     u, redir = require_admin(request)
     if redir:
         return redir
@@ -131,7 +131,16 @@ async def admin_sync_db(request: Request):
     try:
         init_db()
         _db_ready = True
-        return JSONResponse({"ok": True, "message": "Base de datos sincronizada correctamente"})
+        # Sincronizar líderes G12 desde roles
+        creados = 0
+        for pr in db.query(PersonaRol).filter(PersonaRol.rol.in_(["lider_g1", "lider_g2"])).all():
+            ya = db.query(LiderG12).filter(LiderG12.persona_id == pr.persona_id).first()
+            if not ya:
+                gen = 1 if pr.rol == "lider_g1" else 2
+                db.add(LiderG12(persona_id=pr.persona_id, generacion=gen, activo=True))
+                creados += 1
+        db.commit()
+        return JSONResponse({"ok": True, "message": f"DB sincronizada. {creados} líderes G12 registrados."})
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
@@ -403,6 +412,16 @@ async def persona_nueva_post(
     if crear_usuario == "si" or roles:
         pin = pin_inicial(dni)
         db.add(Usuario(persona_id=p.id, pin_hash=hashear_pin(pin), debe_cambiar_pin=True))
+
+    # Auto-registrar en red G12 si tiene rol de líder
+    if "lider_g1" in roles:
+        ya = db.query(LiderG12).filter(LiderG12.persona_id == p.id).first()
+        if not ya:
+            db.add(LiderG12(persona_id=p.id, generacion=1, activo=True))
+    elif "lider_g2" in roles:
+        ya = db.query(LiderG12).filter(LiderG12.persona_id == p.id).first()
+        if not ya:
+            db.add(LiderG12(persona_id=p.id, generacion=2, activo=True))
 
     db.commit()
     return RedirectResponse(url=f"/personas/{p.id}", status_code=303)
