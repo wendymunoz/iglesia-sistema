@@ -108,44 +108,55 @@ async def seed_data_endpoint(db: Session = Depends(get_db)):
         if db.query(Persona).filter(Persona.dni == "10000001").first():
             return JSONResponse({"error": "Datos de ejemplo ya existen."}, status_code=403)
         hoy = date.today()
+        # 10 personas
         PDATA = [
-            ("10000001","María","Torres Quispe",    date(1990,3,15),"987654321"),
-            ("10000002","Juan", "Flores Mamani",    date(1985,7,22),"987654322"),
-            ("10000003","Rosa", "Chávez López",     date(1992,11,5),"987654323"),
-            ("10000004","Pedro","Gutiérrez Ramos",  date(1988,1,30),"987654324"),
-            ("10000005","Ana",  "Mendoza Silva",    date(1995,6,18),"987654325"),
-            ("10000006","Luis", "Vargas Huanca",    date(1983,9,10),"987654326"),
-            ("10000007","Carmen","Soto Ccasa",      date(1998,4,25),"987654327"),
-            ("10000008","Carlos","Ríos Paucar",     date(1991,12,8),"987654328"),
-            ("10000009","Elena","Paredes Condori",  date(1987,2,14),"987654329"),
-            ("10000010","Diego","Cabrera Apaza",    date(1994,8,20),"987654330"),
+            ("10000001","María","Torres Quispe",   date(1990,3,15),"987654321"),
+            ("10000002","Juan", "Flores Mamani",   date(1985,7,22),"987654322"),
+            ("10000003","Rosa", "Chávez López",    date(1992,11,5),"987654323"),
+            ("10000004","Pedro","Gutiérrez Ramos", date(1988,1,30),"987654324"),
+            ("10000005","Ana",  "Mendoza Silva",   date(1995,6,18),"987654325"),
+            ("10000006","Luis", "Vargas Huanca",   date(1983,9,10),"987654326"),
+            ("10000007","Carmen","Soto Ccasa",     date(1998,4,25),"987654327"),
+            ("10000008","Carlos","Ríos Paucar",    date(1991,12,8),"987654328"),
+            ("10000009","Elena","Paredes Condori", date(1987,2,14),"987654329"),
+            ("10000010","Diego","Cabrera Apaza",   date(1994,8,20),"987654330"),
         ]
         personas = []
         for i,(dni,nom,ape,fn,tel) in enumerate(PDATA):
+            # Persona: dni, nombre, apellido, fecha_nacimiento, telefono, activo
             p = Persona(dni=dni, nombre=nom, apellido=ape, fecha_nacimiento=fn, telefono=tel, activo=True)
             db.add(p); db.flush()
             etapa = "nivel_1" if i < 4 else ("post_encuentro" if i < 7 else "visitante")
+            # ProcesoEspiritual: persona_id, etapa
             db.add(ProcesoEspiritual(persona_id=p.id, etapa=etapa))
+            # Usuario: persona_id, pin_hash, debe_cambiar_pin
             db.add(Usuario(persona_id=p.id, pin_hash=hashear_pin(pin_inicial(dni)), debe_cambiar_pin=False))
             personas.append(p)
+        # PersonaRol: persona_id, rol
         db.add(PersonaRol(persona_id=personas[0].id, rol="lider_g1"))
         db.add(PersonaRol(persona_id=personas[1].id, rol="lider_g1"))
         db.add(PersonaRol(persona_id=personas[2].id, rol="lider_g2"))
+        # LiderG12: persona_id, generacion, supervisor_id, activo
         db.add(LiderG12(persona_id=personas[0].id, generacion=1, activo=True))
         db.add(LiderG12(persona_id=personas[1].id, generacion=1, activo=True))
         db.add(LiderG12(persona_id=personas[2].id, generacion=2, supervisor_id=personas[0].id, activo=True))
-        db.add(Celula(nombre_casa="Célula Esperanza", lider_id=personas[0].id, activa=True))
-        db.add(Celula(nombre_casa="Célula Fe",        lider_id=personas[1].id, activa=True))
+        # Celula: nombre_casa, lider_id, activa
+        db.add(Celula(nombre_casa="Casa Esperanza", lider_id=personas[0].id, activa=True))
+        db.add(Celula(nombre_casa="Casa Fe",        lider_id=personas[1].id, activa=True))
         db.flush()
+        # Matrículas en salones existentes
         salon1 = db.query(Salon).filter(Salon.nivel == 1).first()
         salon2 = db.query(Salon).filter(Salon.nivel == 2).first()
         for p in personas[:4]:
             if salon1:
+                # Matricula: persona_id, salon_id, estado, fecha_ingreso(DateTime)
                 m = Matricula(persona_id=p.id, salon_id=salon1.id, estado="activo",
                               fecha_ingreso=datetime.utcnow())
                 db.add(m); db.flush()
+                # ConceptoPago: matricula_id, mes, concepto, monto
                 for c in CONCEPTOS_NIVEL:
                     db.add(ConceptoPago(matricula_id=m.id, **c))
+                # HistorialSalon: matricula_id, salon_id, motivo
                 db.add(HistorialSalon(matricula_id=m.id, salon_id=salon1.id, motivo="Matrícula inicial"))
         for p in personas[4:7]:
             if salon2:
@@ -155,17 +166,21 @@ async def seed_data_endpoint(db: Session = Depends(get_db)):
                 for c in CONCEPTOS_NIVEL:
                     db.add(ConceptoPago(matricula_id=m.id, **c))
                 db.add(HistorialSalon(matricula_id=m.id, salon_id=salon2.id, motivo="Matrícula inicial"))
+        # Cultos y ofrendas: Culto(tipo, fecha), Ofrenda(culto_id, monto, concepto, registrado_por_id)
         for tipo, dias, monto in [("domingo",-14,850.0),("miercoles",-11,320.0),("domingo",-7,920.0),
                                    ("miercoles",-4,280.0),("domingo",0,1050.0)]:
             culto = Culto(tipo=tipo, fecha=hoy+timedelta(days=dias))
             db.add(culto); db.flush()
             db.add(Ofrenda(culto_id=culto.id, monto=monto, concepto="Ofrenda general",
                            registrado_por_id=personas[0].id))
+        # GrupoEncuentro: nombre, encargado_id, fecha_apertura, fecha_encuentro, estado
         grupo = GrupoEncuentro(nombre="Encuentro Nov 2026",
+                               encargado_id=personas[0].id,
                                fecha_apertura=hoy+timedelta(days=10),
                                fecha_encuentro=hoy+timedelta(days=12),
-                               encargado_id=personas[0].id, estado="activo")
+                               estado="activo")
         db.add(grupo); db.flush()
+        # InscripcionEncuentro: grupo_id, persona_id, estado
         for p in personas[7:]:
             db.add(InscripcionEncuentro(grupo_id=grupo.id, persona_id=p.id, estado="inscrito"))
         db.commit()
