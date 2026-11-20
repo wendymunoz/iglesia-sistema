@@ -122,6 +122,75 @@ async def setup_inicial(request: Request, db: Session = Depends(get_db)):
     })
 
 
+@app.get("/seed-data")
+async def seed_data_endpoint(db: Session = Depends(get_db)):
+    """Inserta datos de ejemplo. Solo funciona si no existe la persona con DNI 10000001."""
+    if db.query(Persona).filter(Persona.dni == "10000001").first():
+        return JSONResponse({"error": "Datos de ejemplo ya existen."}, status_code=403)
+    from datetime import date as date_type, timedelta
+    personas_data = [
+        {"dni":"10000001","nombre":"María","apellido":"Torres Quispe","fn":date_type(1990,3,15),"tel":"987654321"},
+        {"dni":"10000002","nombre":"Juan","apellido":"Flores Mamani","fn":date_type(1985,7,22),"tel":"987654322"},
+        {"dni":"10000003","nombre":"Rosa","apellido":"Chávez López","fn":date_type(1992,11,5),"tel":"987654323"},
+        {"dni":"10000004","nombre":"Pedro","apellido":"Gutiérrez Ramos","fn":date_type(1988,1,30),"tel":"987654324"},
+        {"dni":"10000005","nombre":"Ana","apellido":"Mendoza Silva","fn":date_type(1995,6,18),"tel":"987654325"},
+        {"dni":"10000006","nombre":"Luis","apellido":"Vargas Huanca","fn":date_type(1983,9,10),"tel":"987654326"},
+        {"dni":"10000007","nombre":"Carmen","apellido":"Soto Ccasa","fn":date_type(1998,4,25),"tel":"987654327"},
+        {"dni":"10000008","nombre":"Carlos","apellido":"Ríos Paucar","fn":date_type(1991,12,8),"tel":"987654328"},
+        {"dni":"10000009","nombre":"Elena","apellido":"Paredes Condori","fn":date_type(1987,2,14),"tel":"987654329"},
+        {"dni":"10000010","nombre":"Diego","apellido":"Cabrera Apaza","fn":date_type(1994,8,20),"tel":"987654330"},
+    ]
+    personas = []
+    for i, d in enumerate(personas_data):
+        p = Persona(dni=d["dni"], nombre=d["nombre"], apellido=d["apellido"],
+                    fecha_nacimiento=d["fn"], telefono=d["tel"], activo=True)
+        db.add(p); db.flush()
+        etapa = "nivel_1" if i < 4 else ("post_encuentro" if i < 7 else "visitante")
+        db.add(ProcesoEspiritual(persona_id=p.id, etapa=etapa))
+        db.add(Usuario(persona_id=p.id, pin_hash=hashear_pin(pin_inicial(d["dni"])), debe_cambiar_pin=False))
+        personas.append(p)
+    db.add(PersonaRol(persona_id=personas[0].id, rol="lider_g1"))
+    db.add(PersonaRol(persona_id=personas[1].id, rol="lider_g1"))
+    db.add(PersonaRol(persona_id=personas[2].id, rol="lider_g2"))
+    db.add(LiderG12(persona_id=personas[0].id, generacion=1, activo=True))
+    db.add(LiderG12(persona_id=personas[1].id, generacion=1, activo=True))
+    db.add(LiderG12(persona_id=personas[2].id, generacion=2, supervisor_id=personas[0].id, activo=True))
+    from database import Celula
+    c1 = Celula(nombre="Célula Esperanza", lider_id=personas[0].id, direccion="Jr. Los Pinos 123", dia_reunion="Martes", hora_reunion="19:00", activa=True)
+    c2 = Celula(nombre="Célula Fe", lider_id=personas[1].id, direccion="Av. Los Olivos 456", dia_reunion="Jueves", hora_reunion="19:30", activa=True)
+    db.add(c1); db.add(c2); db.flush()
+    salon1 = db.query(Salon).filter(Salon.nivel == 1).first()
+    salon2 = db.query(Salon).filter(Salon.nivel == 2).first()
+    for p in personas[:4]:
+        if salon1:
+            m = Matricula(persona_id=p.id, salon_id=salon1.id, estado="activo", fecha_ingreso=date_type.today())
+            db.add(m); db.flush()
+            for c in CONCEPTOS_NIVEL:
+                db.add(ConceptoPago(matricula_id=m.id, **c))
+            db.add(HistorialSalon(matricula_id=m.id, salon_id=salon1.id, motivo="Matrícula inicial"))
+    for p in personas[4:7]:
+        if salon2:
+            m = Matricula(persona_id=p.id, salon_id=salon2.id, estado="activo", fecha_ingreso=date_type.today())
+            db.add(m); db.flush()
+            for c in CONCEPTOS_NIVEL:
+                db.add(ConceptoPago(matricula_id=m.id, **c))
+            db.add(HistorialSalon(matricula_id=m.id, salon_id=salon2.id, motivo="Matrícula inicial"))
+    hoy = date_type.today()
+    for tipo, dias, monto in [("domingo",-14,850.0),("miercoles",-11,320.0),("domingo",-7,920.0),("miercoles",-4,280.0),("domingo",0,1050.0)]:
+        culto = Culto(tipo=tipo, fecha=hoy+timedelta(days=dias))
+        db.add(culto); db.flush()
+        db.add(Ofrenda(culto_id=culto.id, monto=monto, concepto="Ofrenda general", registrado_por_id=personas[0].id))
+    grupo = GrupoEncuentro(nombre="Encuentro Nov 2026", fecha_inicio=hoy+timedelta(days=10),
+                           fecha_fin=hoy+timedelta(days=12), lugar="Retiro Casa de Oración",
+                           encargado_id=personas[0].id, estado="programado")
+    db.add(grupo); db.flush()
+    for p in personas[7:]:
+        db.add(InscripcionEncuentro(grupo_id=grupo.id, persona_id=p.id, estado="inscrito"))
+    db.commit()
+    return JSONResponse({"ok": True, "personas": 10, "celulas": 2, "cultos": 5, "encuentro": 1,
+                         "mensaje": "Datos de ejemplo insertados. Visita /personas para verlos."})
+
+
 @app.get("/admin/sync-db")
 async def admin_sync_db(request: Request, db: Session = Depends(get_db)):
     u, redir = require_admin(request)

@@ -60,11 +60,9 @@
         <div>
           <label class="field-label">Etapa Espiritual</label>
           <select name="etapa" class="input-field">
-            <option value="visitante">Visitante</option>
-            <option value="pre_encuentro">Pre-Encuentro</option>
-            <option value="encuentro">Encuentro con Dios</option>
-            <option value="pos_encuentro">Pos-Encuentro</option>
-            <option value="escuela">Escuela de Liderazgo</option>
+            {% for etapa_val in ETAPAS %}
+            <option value="{{ etapa_val }}">{{ ETAPAS_DISPLAY[etapa_val] }}</option>
+            {% endfor %}
           </select>
         </div>
       </div>

@@ -46,7 +46,7 @@
 
   <!-- Stats -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
-    {% set activas = salon.matriculas|selectattr("estado","in",["activa","activo"])|list %}
+    {% set activas = salon.matriculas|selectattr("estado","equalto","activo")|list %}
     <div class="card" style="padding:16px;text-align:center">
       <div style="font-size:24px;font-weight:800;color:#1A160E">{{ salon.matriculas|length }}</div>
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#8B7A5A;margin-top:2px">Total</div>
@@ -91,8 +91,8 @@
           <td>
             {% if saldo_fn %}
             {% set s = saldo_fn(mat) %}
-            {% if s > 0 %}
-            <span class="badge badge-red">S/. {{ "%.0f"|format(s) }}</span>
+            {% if s.pendiente > 0 %}
+            <span class="badge badge-red">S/. {{ "%.0f"|format(s.pendiente) }}</span>
             {% else %}
             <span class="badge badge-green">Al día</span>
             {% endif %}
