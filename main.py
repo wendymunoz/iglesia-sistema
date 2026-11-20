@@ -5,7 +5,8 @@ import httpx
 import openpyxl
 from datetime import datetime, date, timedelta
 from fastapi import FastAPI, Request, Form, Depends
-from fastapi.responses import RedirectResponse, JSONResponse, StreamingResponse
+from fastapi.responses import RedirectResponse, JSONResponse, StreamingResponse, HTMLResponse
+from fastapi.exceptions import HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -46,6 +47,24 @@ if os.path.isdir("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
+
+
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc):
+    u = get_session_user(request)
+    if not u:
+        return RedirectResponse(url="/login", status_code=303)
+    return HTMLResponse(content=f"""<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"/><title>Página no encontrada</title>
+<script src="https://cdn.tailwindcss.com"></script></head>
+<body class="min-h-screen bg-amber-50 flex items-center justify-center">
+  <div class="text-center p-10">
+    <div style="font-size:64px">🔍</div>
+    <h1 style="font-size:28px;font-weight:800;color:#1A160E;margin:16px 0 8px">Página no encontrada</h1>
+    <p style="color:#8B7A5A;font-size:14px;margin-bottom:28px">Esta sección no existe o no tienes acceso.</p>
+    <a href="/dashboard" style="background:linear-gradient(135deg,#D4A820,#A07818);color:#fff;font-weight:700;border-radius:10px;padding:12px 24px;text-decoration:none;font-size:14px">← Volver al dashboard</a>
+  </div>
+</body></html>""", status_code=404)
 
 
 _db_ready = False
